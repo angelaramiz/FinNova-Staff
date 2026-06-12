@@ -8,19 +8,6 @@ export default defineConfig(() => {
     plugins: [
       react(), 
       tailwindcss(),
-      {
-        name: 'express-api-plugin',
-        configureServer(server) {
-          server.middlewares.use(async (req, res, next) => {
-            if (req.url && (req.url.startsWith('/api') || req.url.startsWith('/webhooks'))) {
-              const { app } = await import('./src/server.ts');
-              app(req as any, res as any, next);
-            } else {
-              next();
-            }
-          });
-        }
-      }
     ],
     resolve: {
       alias: {
@@ -28,8 +15,12 @@ export default defineConfig(() => {
       },
     },
     server: {
+      proxy: {
+        '/api': 'http://localhost:3000',
+        '/webhooks': 'http://localhost:3000',
+      },
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
