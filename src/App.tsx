@@ -64,6 +64,10 @@ function AppContent() {
 
   // Sync utilities
   const [loading, setLoading] = useState(true);
+
+  // Service Worker Update States
+  const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
+  const [swUpdateAvailable, setSwUpdateAvailable] = useState(false);
   
   // Local active view role (matches URL path)
   const [currentViewMode, setCurrentViewMode] = useState<'student' | 'instructor' | 'admin'>('instructor');
@@ -86,6 +90,41 @@ function AppContent() {
   useEffect(() => {
     loadPlatformData();
   }, [currentViewMode]);
+
+  // Listen for Service Worker updates and versioning
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+
+      navigator.serviceWorker.getRegistration().then((reg) => {
+        if (!reg) return;
+        setSwRegistration(reg);
+
+        if (reg.waiting) {
+          setSwUpdateAvailable(true);
+        }
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                setSwUpdateAvailable(true);
+              }
+            });
+          }
+        });
+      });
+    }
+  }, []);
+
+  const handleApplyUpdate = () => {
+    if (swRegistration && swRegistration.waiting) {
+      swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+  };
 
   const loadPlatformData = async () => {
     setLoading(true);
@@ -354,6 +393,25 @@ function AppContent() {
       </main>
 
 
+      {swUpdateAvailable && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="bg-slate-900/95 border border-teal-500/50 backdrop-blur-md px-5 py-4 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-center gap-3.5 max-w-sm animate-fade-in-up">
+            <div className="bg-teal-500/10 border border-teal-500/20 p-2 rounded-xl text-teal-400">
+              <RefreshCw className="w-5 h-5 animate-spin" style={{ animationDuration: '3s' }} />
+            </div>
+            <div className="text-center sm:text-left">
+              <p className="text-xs font-bold text-slate-200">¡Nueva versión disponible!</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Se han detectado actualizaciones en el portal de staff.</p>
+            </div>
+            <button
+              onClick={handleApplyUpdate}
+              className="mt-2 sm:mt-0 px-3 py-1.5 bg-teal-500 hover:bg-teal-400 text-slate-950 font-extrabold text-[10px] rounded-lg shadow-md hover:shadow-teal-500/25 transition cursor-pointer"
+            >
+              Actualizar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
