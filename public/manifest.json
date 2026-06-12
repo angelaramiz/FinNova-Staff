@@ -1,0 +1,25 @@
+{
+  "name": "AuraFi Academy",
+  "short_name": "AuraFi",
+  "description": "Infraestructura base para una plataforma de micro-aprendizaje en finanzas con videos cortos.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "orientation": "portrait-primary",
+  "categories": ["education", "finance"],
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&fm=png&w=192&h=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&q=80&fm=png&w=512&h=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
