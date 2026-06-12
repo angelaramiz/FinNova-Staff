@@ -285,9 +285,14 @@ function AppContent() {
               <TrendingUp className="w-4.5 h-4.5" />
             </div>
             <div>
-              <span className="font-extrabold text-sm tracking-wide text-slate-200 block">
-                AURAFI ACADEMY
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm tracking-wide text-slate-200 block">
+                  AURAFI ACADEMY
+                </span>
+                <span className="bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[8px] px-1.5 py-0.5 rounded-md font-mono font-bold leading-none">
+                  v1.0.0
+                </span>
+              </div>
               <span className="text-[9px] text-teal-400/80 font-mono font-semibold tracking-wider uppercase block">
                 Enterprise LMS & AI Certification
               </span>
