@@ -257,31 +257,27 @@ function AppContent() {
 
           {/* Nav links based on permission and routes */}
           <nav className="hidden md:flex items-center gap-1.5 bg-slate-900/40 border border-slate-800/60 p-1 rounded-xl">
-            {(profile.role === 'instructor' || profile.role === 'admin' || currentViewMode === 'instructor' || currentViewMode === 'admin') && (
-              <Link
-                to="/instructor"
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
-                  currentViewMode === 'instructor'
-                    ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
-                    : 'text-slate-400 hover:text-slate-200 border-transparent'
-                }`}
-              >
-                <Cpu className="w-3.5 h-3.5" /> Portal Instructor
-              </Link>
-            )}
+            <Link
+              to="/instructor"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
+                currentViewMode === 'instructor'
+                  ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent'
+              }`}
+            >
+              <Cpu className="w-3.5 h-3.5" /> Portal Instructor
+            </Link>
 
-            {(profile.role === 'admin' || currentViewMode === 'admin') && (
-              <Link
-                to="/admin"
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
-                  currentViewMode === 'admin'
-                    ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
-                    : 'text-slate-400 hover:text-slate-200 border-transparent'
-                }`}
-              >
-                <Database className="w-3.5 h-3.5" /> Portal Administrador
-              </Link>
-            )}
+            <Link
+              to="/admin"
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
+                currentViewMode === 'admin'
+                  ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5" /> Portal Administrador
+            </Link>
           </nav>
 
           {/* XP Badge and User Profile tag */}
