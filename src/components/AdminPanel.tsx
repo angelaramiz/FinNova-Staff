@@ -63,7 +63,7 @@ export default function AdminPanel() {
     {
       id: "u4",
       fullName: "Administrador Master",
-      email: "admin@aurafi.academy",
+      email: "admin@finnova.academy",
       role: "admin",
       verifiedIdentity: true,
       points: 0
@@ -158,7 +158,7 @@ export default function AdminPanel() {
           <Database className="w-5 h-5" />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-slate-100">Panel del Administrador (AuraFi Control Hub)</h1>
+          <h1 className="text-lg font-bold text-slate-100">Panel del Administrador (FinNova Control Hub)</h1>
           <p className="text-xs text-slate-500 font-normal">Gestiona la seguridad del ecosistema, audita los logs de Gemini/n8n y edita roles corporativos.</p>
         </div>
       </div>

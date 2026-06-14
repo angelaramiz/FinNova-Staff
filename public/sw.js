@@ -4,7 +4,7 @@
  */
 
 const CACHE_VERSION = '1.0.0';
-const CACHE_NAME = `aurafi-cache-staff-v${CACHE_VERSION}`;
+const CACHE_NAME = `finnova-cache-staff-v${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
   '/',
@@ -28,7 +28,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cache) => {
-          if (cache !== CACHE_NAME && cache.startsWith('aurafi-cache-staff-v')) {
+          if (cache !== CACHE_NAME && cache.startsWith('finnova-cache-staff-v')) {
             console.log(`[Service Worker] Cleaning stale cache: ${cache}`);
             return caches.delete(cache);
           }
@@ -71,7 +71,7 @@ self.addEventListener('fetch', (event) => {
           // If completely offline and HTML is requested, return friendly offline response
           if (event.request.headers.get('accept')?.includes('text/html')) {
             return new Response(
-              '<!DOCTYPE html><html><head><meta charset="utf-8"><title>AuraFi Staff - Offline</title><style>body{background:#0a0f1d;color:#94a3b8;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}h1{color:#2dd4bf;margin-bottom:8px}p{margin-top:0}</style></head><body><h1>Modo Offline</h1><p>Conéctate a internet para continuar gestionando.</p></body></html>',
+              '<!DOCTYPE html><html><head><meta charset="utf-8"><title>FinNova Staff - Offline</title><style>body{background:#0a0f1d;color:#94a3b8;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0}h1{color:#2dd4bf;margin-bottom:8px}p{margin-top:0}</style></head><body><h1>Modo Offline</h1><p>Conéctate a internet para continuar gestionando.</p></body></html>',
               { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
             );
           }

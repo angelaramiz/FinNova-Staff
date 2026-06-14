@@ -287,7 +287,7 @@ function AppContent() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-sm tracking-wide text-slate-200 block">
-                  AURAFI ACADEMY
+                  FINNOVA ACADEMY
                 </span>
                 <span className="bg-teal-500/10 border border-teal-500/30 text-teal-400 text-[8px] px-1.5 py-0.5 rounded-md font-mono font-bold leading-none">
                   v1.0.0

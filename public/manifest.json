@@ -1,6 +1,6 @@
 {
-  "name": "AuraFi Academy",
-  "short_name": "AuraFi",
+  "name": "FinNova Academy",
+  "short_name": "FinNova",
   "description": "Infraestructura base para una plataforma de micro-aprendizaje en finanzas con videos cortos.",
   "start_url": "/",
   "display": "standalone",
