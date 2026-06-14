@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, 
   Users, 
@@ -10,8 +10,12 @@ import {
   TrendingUp, 
   Cpu, 
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2,
+  Plus,
+  Check
 } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface AuditLog {
   id: string;
@@ -33,6 +37,73 @@ interface UserRecord {
 
 export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Allowed emails state
+  const [allowedEmails, setAllowedEmails] = useState<any[]>([]);
+  const [newEmail, setNewEmail] = useState('');
+  const [newRole, setNewRole] = useState<'student' | 'instructor' | 'admin'>('student');
+  const [newFullName, setNewFullName] = useState('');
+  const [allowedLoading, setAllowedLoading] = useState(false);
+  const [allowedError, setAllowedError] = useState<string | null>(null);
+  const [allowedSuccess, setAllowedSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchAllowedEmails();
+  }, []);
+
+  const fetchAllowedEmails = async () => {
+    setAllowedLoading(true);
+    try {
+      const data = await api.getAllowedEmails();
+      setAllowedEmails(data);
+    } catch (err: any) {
+      console.error('Error fetching allowed emails:', err);
+    } finally {
+      setAllowedLoading(false);
+    }
+  };
+
+  const handleAddAllowedEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newEmail.trim() || !newFullName.trim() || allowedLoading) return;
+    setAllowedLoading(true);
+    setAllowedError(null);
+    setAllowedSuccess(null);
+    try {
+      const added = await api.addAllowedEmail({
+        email: newEmail.trim().toLowerCase(),
+        role: newRole,
+        fullName: newFullName.trim()
+      });
+      setAllowedEmails(prev => [...prev, added]);
+      setAllowedSuccess(`Cuenta escolar autorizada para ${newEmail.trim().toLowerCase()}`);
+      setNewEmail('');
+      setNewFullName('');
+      setNewRole('student');
+    } catch (err: any) {
+      setAllowedError(err.message || 'Error al agregar la cuenta autorizada.');
+    } finally {
+      setAllowedLoading(false);
+    }
+  };
+
+  const handleDeleteAllowedEmail = async (emailToDelete: string) => {
+    if (!window.confirm(`¿Estás seguro de que deseas revocar el acceso a ${emailToDelete}? El usuario no podrá iniciar sesión en la escuela.`)) {
+      return;
+    }
+    setAllowedLoading(true);
+    setAllowedError(null);
+    setAllowedSuccess(null);
+    try {
+      await api.deleteAllowedEmail(emailToDelete);
+      setAllowedEmails(prev => prev.filter(a => a.email !== emailToDelete));
+      setAllowedSuccess(`Acceso revocado exitosamente para ${emailToDelete}`);
+    } catch (err: any) {
+      setAllowedError(err.message || 'Error al eliminar la cuenta autorizada.');
+    } finally {
+      setAllowedLoading(false);
+    }
+  };
   
   // Simulated database records for administration
   const [users, setUsers] = useState<UserRecord[]>([
@@ -263,6 +334,149 @@ export default function AdminPanel() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Allowed Emails Management Directory */}
+      <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-6">
+        <div>
+          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+            Directorio de Cuentas Pre-Autorizadas (Control Escolar)
+          </h3>
+          <p className="text-slate-500 text-[10px] font-normal mt-0.5">
+            Autoriza cuentas escolares (correos electrónicos) de estudiantes e instructores. Solo las cuentas en este directorio podrán autenticarse en el sistema.
+          </p>
+        </div>
+
+        {/* Success/Error Alerts */}
+        {(allowedError || allowedSuccess) && (
+          <div className="space-y-2">
+            {allowedError && (
+              <div className="bg-rose-500/5 border border-rose-500/15 text-rose-455 p-3 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{allowedError}</span>
+              </div>
+            )}
+            {allowedSuccess && (
+              <div className="bg-teal-500/5 border border-teal-500/15 text-teal-400 p-3 rounded-xl text-xs flex items-center gap-2">
+                <Check className="w-4 h-4 shrink-0" />
+                <span>{allowedSuccess}</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Add Allowed Email Form */}
+        <form onSubmit={handleAddAllowedEmail} className="bg-slate-950/20 border border-slate-850/60 p-4 rounded-xl space-y-4">
+          <h4 className="text-[11px] font-semibold text-slate-300 font-mono uppercase tracking-wide">
+            Autorizar Nuevo Miembro
+          </h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Nombre Completo</label>
+              <input
+                type="text"
+                required
+                value={newFullName}
+                onChange={(e) => setNewFullName(e.target.value)}
+                placeholder="ej. Estudiante FinNova"
+                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Correo Escolar</label>
+              <input
+                type="email"
+                required
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+                placeholder="ej. student.finance@finnova.edu"
+                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Rol en la Academia</label>
+              <select
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value as any)}
+                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+              >
+                <option value="student">Alumno (student)</option>
+                <option value="instructor">Instructor (instructor)</option>
+                <option value="admin">Administrador (admin)</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              disabled={allowedLoading}
+              className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              <Plus className="w-3.5 h-3.5" /> Autorizar Acceso
+            </button>
+          </div>
+        </form>
+
+        {/* Allowed Emails Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="border-b border-slate-850/80 text-slate-500 font-mono">
+                <th className="py-2 px-4">Nombre Completo</th>
+                <th className="py-2 px-4">Correo Electrónico</th>
+                <th className="py-2 px-4">Rol en Sistema</th>
+                <th className="py-2 px-4">Fecha Autorización</th>
+                <th className="py-2 px-4 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-850/50">
+              {allowedLoading && allowedEmails.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-slate-500">
+                    Cargando directorio de acceso...
+                  </td>
+                </tr>
+              ) : allowedEmails.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-6 text-center text-slate-500">
+                    No hay correos autorizados registrados.
+                  </td>
+                </tr>
+              ) : (
+                allowedEmails.map((allowed) => (
+                  <tr key={allowed.email} className="hover:bg-slate-955/20 transition duration-150">
+                    <td className="py-3 px-4 font-semibold text-slate-200">{allowed.fullName}</td>
+                    <td className="py-3 px-4 text-slate-405 font-mono">{allowed.email}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-semibold uppercase ${
+                        allowed.role === 'admin' 
+                          ? 'bg-rose-500/5 border-rose-500/15 text-rose-455' 
+                          : allowed.role === 'instructor'
+                          ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-305'
+                          : 'bg-slate-950/40 border-slate-850/85 text-slate-400'
+                      }`}>
+                        {allowed.role}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-500 font-mono">
+                      {new Date(allowed.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="py-3 px-4 text-center">
+                      <button
+                        onClick={() => handleDeleteAllowedEmail(allowed.email)}
+                        disabled={allowedLoading}
+                        className="bg-slate-950/40 hover:bg-rose-950/20 border border-slate-850 hover:border-rose-900 text-slate-400 hover:text-rose-450 p-1.5 rounded-lg transition cursor-pointer disabled:opacity-50"
+                        title="Revocar Acceso"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

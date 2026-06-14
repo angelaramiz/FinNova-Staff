@@ -22,11 +22,14 @@ import {
   BookOpen,
   Sliders, 
   RefreshCw, 
-  CheckCircle2
+  CheckCircle2,
+  LogOut
 } from 'lucide-react';
 import { api } from './lib/api';
 import InstructorPanel from './components/InstructorPanel';
 import AdminPanel from './components/AdminPanel';
+import Login from './components/Login';
+import { supabase } from './lib/supabaseClient';
 
 export default function App() {
   return (
@@ -40,15 +43,11 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Authentication State
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   // App profile state
-  const [profile, setProfile] = useState<any>({
-    fullName: 'Inversor Novato',
-    role: 'student',
-    pointsEarned: 100,
-    certLevel: 'Principiante Financiero',
-    institution: 'Instituto de Finanzas Aplicadas',
-    verifiedIdentity: true
-  });
+  const [profile, setProfile] = useState<any>(null);
 
   // Global Courses
   const [courses, setCourses] = useState<any[]>([]);
@@ -86,10 +85,41 @@ function AppContent() {
     }
   }, [location.pathname]);
 
-  // Load platform data upon mount or role updates
+  // Load platform data upon mount, authentication or role updates
   useEffect(() => {
-    loadPlatformData();
-  }, [currentViewMode]);
+    const token = localStorage.getItem('supabase_auth_token');
+    if (token) {
+      setIsAuthenticated(true);
+      loadPlatformData();
+    } else {
+      setIsAuthenticated(false);
+      setLoading(false);
+    }
+  }, [currentViewMode, isAuthenticated]);
+
+  // Listen for native Supabase OAuth session redirects and changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
+        const role = session.user.user_metadata?.role || 'student';
+        if (role !== 'instructor' && role !== 'admin') {
+          // Deny login for students in staff portal
+          alert('Acceso restringido a instructores y administradores.');
+          await supabase.auth.signOut();
+          return;
+        }
+        localStorage.setItem('supabase_auth_token', session.access_token);
+        localStorage.setItem('sandbox_mock_user_id', session.user.id);
+        localStorage.setItem('sandbox_view_mode', role);
+        setIsAuthenticated(true);
+        loadPlatformData();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
 
   // Listen for Service Worker updates and versioning
   useEffect(() => {
@@ -126,25 +156,39 @@ function AppContent() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (_) {
+      // Ignore if placeholder config fails
+    }
+    localStorage.removeItem('supabase_auth_token');
+    localStorage.removeItem('sandbox_mock_user_id');
+    localStorage.removeItem('sandbox_view_mode');
+    setProfile(null);
+    setIsAuthenticated(false);
+    navigate('/');
+  };
+
   const loadPlatformData = async () => {
+    const token = localStorage.getItem('supabase_auth_token');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
-      localStorage.setItem('sandbox_view_mode', currentViewMode);
-      localStorage.setItem(
-        'sandbox_mock_user_id', 
-        currentViewMode === 'student' 
-          ? '22222222-2222-2222-2222-222222222222'
-          : '11111111-1111-1111-1111-111111111111'
-      );
-
       const userProfile = await api.getProfile();
+      if (userProfile.role !== 'instructor' && userProfile.role !== 'admin') {
+        handleLogout();
+        return;
+      }
+
       setProfile({
         ...userProfile,
-        // Override role locally to support admin / instructor preview flows
-        role: currentViewMode,
-        certLevel: currentViewMode === 'student' 
+        certLevel: userProfile.role === 'student' 
           ? 'Analista Certificado Nivel I' 
-          : currentViewMode === 'instructor' 
+          : userProfile.role === 'instructor' 
           ? 'Instructor Senior' 
           : 'Administrador Master',
         institution: 'ITAM - Especialización en Finanzas Corporativas',
@@ -154,7 +198,7 @@ function AppContent() {
       const courseList = await api.getCourses();
       setCourses(courseList);
 
-      if (currentViewMode === 'instructor') {
+      if (userProfile.role === 'instructor') {
         const pipelineData = await api.getPipelineReviews();
         setPipelines(pipelineData);
       }
@@ -162,6 +206,7 @@ function AppContent() {
       setLoading(false);
     } catch (err) {
       console.error('Error hydrating platform entities:', err);
+      handleLogout();
       setLoading(false);
     }
   };
@@ -270,6 +315,25 @@ function AppContent() {
     navigate(`/${role}`);
   };
 
+  if (!isAuthenticated || !profile) {
+    return (
+      <Login
+        onLoginSuccess={(token, userProfile) => {
+          if (userProfile.role !== 'instructor' && userProfile.role !== 'admin') {
+            alert('Acceso restringido a instructores y administradores.');
+            return;
+          }
+          localStorage.setItem('supabase_auth_token', token);
+          localStorage.setItem('sandbox_mock_user_id', userProfile.id);
+          localStorage.setItem('sandbox_view_mode', userProfile.role);
+          setProfile(userProfile);
+          setIsAuthenticated(true);
+          navigate(userProfile.role === 'admin' ? '/admin' : '/instructor');
+        }}
+      />
+    );
+  }
+
   return (
     <div id="finance-platform-core" className="min-h-screen bg-[#0a0f1d] text-slate-300 flex flex-col font-sans selection:bg-teal-450 selection:text-neutral-900">
       
@@ -300,29 +364,35 @@ function AppContent() {
           </div>
 
           {/* Nav links based on permission and routes */}
-          <nav className="hidden md:flex items-center gap-1.5 bg-slate-900/40 border border-slate-800/60 p-1 rounded-xl">
-            <Link
-              to="/instructor"
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
-                currentViewMode === 'instructor'
-                  ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
-                  : 'text-slate-400 hover:text-slate-200 border-transparent'
-              }`}
-            >
-              <Cpu className="w-3.5 h-3.5" /> Portal Instructor
-            </Link>
+          {profile && (
+            <nav className="hidden md:flex items-center gap-1.5 bg-slate-900/40 border border-slate-800/60 p-1 rounded-xl">
+              {profile.role === 'instructor' && (
+                <Link
+                  to="/instructor"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
+                    location.pathname.startsWith('/instructor')
+                      ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
+                      : 'text-slate-400 hover:text-slate-200 border-transparent'
+                  }`}
+                >
+                  <Cpu className="w-3.5 h-3.5" /> Portal Instructor
+                </Link>
+              )}
 
-            <Link
-              to="/admin"
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
-                currentViewMode === 'admin'
-                  ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
-                  : 'text-slate-400 hover:text-slate-200 border-transparent'
-              }`}
-            >
-              <Database className="w-3.5 h-3.5" /> Portal Administrador
-            </Link>
-          </nav>
+              {profile.role === 'admin' && (
+                <Link
+                  to="/admin"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 cursor-pointer border ${
+                    location.pathname.startsWith('/admin')
+                      ? 'bg-slate-900 border-slate-800/80 text-teal-400 shadow-inner'
+                      : 'text-slate-400 hover:text-slate-200 border-transparent'
+                  }`}
+                >
+                  <Database className="w-3.5 h-3.5" /> Portal Administrador
+                </Link>
+              )}
+            </nav>
+          )}
 
           {/* XP Badge and User Profile tag */}
           <div className="flex items-center gap-3">
@@ -347,6 +417,13 @@ function AppContent() {
                 </p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="bg-slate-900/60 hover:bg-slate-850 border border-slate-850/80 text-slate-400 hover:text-slate-200 p-2 rounded-xl transition cursor-pointer"
+              title="Cerrar Sesión"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
@@ -372,28 +449,40 @@ function AppContent() {
 
           {/* INSTRUCTOR PANEL ROOT ROUTING */}
           <Route path="/instructor" element={
-            <InstructorPanel 
-              pipelines={pipelines}
-              newPipelinePrompt={newPipelinePrompt}
-              setNewPipelinePrompt={setNewPipelinePrompt}
-              newPipelineTitle={newPipelineTitle}
-              setNewPipelineTitle={setNewPipelineTitle}
-              voiceModel={voiceModel}
-              setVoiceModel={setVoiceModel}
-              isCreatingDraft={isCreatingDraft}
-              handleCreatePipelineDraft={handleCreatePipelineDraft}
-              handleApprovePipelineItem={handleApprovePipelineItem}
-              handleRejectPipelineItem={handleRejectPipelineItem}
-            />
+            profile.role === 'instructor' ? (
+              <InstructorPanel 
+                pipelines={pipelines}
+                newPipelinePrompt={newPipelinePrompt}
+                setNewPipelinePrompt={setNewPipelinePrompt}
+                newPipelineTitle={newPipelineTitle}
+                setNewPipelineTitle={setNewPipelineTitle}
+                voiceModel={voiceModel}
+                setVoiceModel={setVoiceModel}
+                isCreatingDraft={isCreatingDraft}
+                handleCreatePipelineDraft={handleCreatePipelineDraft}
+                handleApprovePipelineItem={handleApprovePipelineItem}
+                handleRejectPipelineItem={handleRejectPipelineItem}
+                courses={courses}
+                refreshCourses={loadPlatformData}
+              />
+            ) : (
+              <Navigate to="/admin" replace />
+            )
           } />
 
           {/* ADMIN PANEL ROOT ROUTING */}
           <Route path="/admin" element={
-            <AdminPanel />
+            profile.role === 'admin' ? (
+              <AdminPanel />
+            ) : (
+              <Navigate to="/instructor" replace />
+            )
           } />
 
           {/* ROOT REDIRECT FALLBACK */}
-          <Route path="*" element={<Navigate to="/instructor" replace />} />
+          <Route path="*" element={
+            <Navigate to={profile.role === 'admin' ? "/admin" : "/instructor"} replace />
+          } />
         </Routes>
       </main>
 

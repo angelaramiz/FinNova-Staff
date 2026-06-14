@@ -110,6 +110,18 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ role }),
   }),
+  loginSimulated: (email: string) => apiFetch<{ token: string; profile: any }>('/api/auth/login-simulated', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
+  getAllowedEmails: () => apiFetch<any[]>('/api/auth/allowed-emails'),
+  addAllowedEmail: (payload: { email: string; role: string; fullName: string }) => apiFetch<any>('/api/auth/allowed-emails', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  deleteAllowedEmail: (email: string) => apiFetch<any>(`/api/auth/allowed-emails/${encodeURIComponent(email)}`, {
+    method: 'DELETE',
+  }),
 
   // Courses & Clips
   getCourses: (difficulty?: string) => {
@@ -151,5 +163,36 @@ export const api = {
   }) => apiFetch<any>('/api/pipeline/create-draft', {
     method: 'POST',
     body: JSON.stringify(payload),
+  }),
+
+  // Questions / Chat API
+  getQuestions: () => apiFetch<any[]>('/api/auth/questions'),
+  askQuestion: (payload: { courseId: string; courseTitle: string; clipId: string; clipTitle: string; questionText: string }) => apiFetch<any>('/api/auth/questions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  replyQuestion: (id: string, replyText: string) => apiFetch<any>(`/api/auth/questions/${id}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ replyText }),
+  }),
+
+  // Course Management API (Instructor/Admin only)
+  updateCourse: (id: string, payload: any) => apiFetch<any>(`/api/courses/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+  deleteCourse: (id: string) => apiFetch<any>(`/api/courses/${id}`, {
+    method: 'DELETE',
+  }),
+  addClip: (courseId: string, payload: any) => apiFetch<any>(`/api/courses/${courseId}/clips`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  updateClip: (courseId: string, clipId: string, payload: any) => apiFetch<any>(`/api/courses/${courseId}/clips/${clipId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  }),
+  deleteClip: (courseId: string, clipId: string) => apiFetch<any>(`/api/courses/${courseId}/clips/${clipId}`, {
+    method: 'DELETE',
   }),
 };
