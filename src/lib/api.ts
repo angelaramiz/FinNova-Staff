@@ -35,7 +35,9 @@ interface RequestOptions extends RequestInit {
 export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { retries = 2, retryDelayMs = 1000, ...fetchConfig } = options;
   const baseUrl = import.meta.env.VITE_API_URL || '';
-  const url = `${baseUrl}${endpoint}`;
+  const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${cleanBaseUrl}${cleanEndpoint}`;
 
   // Request Interceptor: Bind standard security and environment simulation headers
   const headers = new Headers(fetchConfig.headers || {});
