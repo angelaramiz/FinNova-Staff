@@ -453,7 +453,7 @@ function AppContent() {
 
           {/* INSTRUCTOR PANEL ROOT ROUTING */}
           <Route path="/instructor" element={
-            profile.role === 'instructor' ? (
+            profile?.role === 'instructor' ? (
               <InstructorPanel 
                 pipelines={pipelines}
                 newPipelinePrompt={newPipelinePrompt}
@@ -476,7 +476,7 @@ function AppContent() {
 
           {/* ADMIN PANEL ROOT ROUTING */}
           <Route path="/admin" element={
-            profile.role === 'admin' ? (
+            profile?.role === 'admin' ? (
               <AdminPanel />
             ) : (
               <Navigate to="/instructor" replace />
@@ -485,7 +485,7 @@ function AppContent() {
 
           {/* ROOT REDIRECT FALLBACK */}
           <Route path="*" element={
-            <Navigate to={profile.role === 'admin' ? "/admin" : "/instructor"} replace />
+            <Navigate to={profile?.role === 'admin' ? "/admin" : "/instructor"} replace />
           } />
         </Routes>
       </main>
