@@ -83,6 +83,14 @@ export async function apiFetch<T>(endpoint: string, options: RequestOptions = {}
         );
       }
 
+      const contentType = response.headers.get('Content-Type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new ApiError(
+          `La respuesta del servidor no es un JSON válido (recibido: ${contentType || 'Ninguno'}). Esto ocurre si la URL del backend no está configurada en VITE_API_URL o si el servidor retornó HTML.`,
+          response.status
+        );
+      }
+
       const json = await response.json();
       return json as T;
     } catch (err: any) {
