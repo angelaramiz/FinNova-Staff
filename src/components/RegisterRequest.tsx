@@ -5,7 +5,6 @@ import { ClipboardCheck, ArrowLeft, RefreshCw, AlertCircle, Sparkles } from 'luc
 export default function RegisterRequest() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'student' | 'instructor'>('instructor');
   const [specialty, setSpecialty] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +24,7 @@ export default function RegisterRequest() {
       await api.submitRegisterRequest({
         fullName: fullName.trim(),
         email: email.trim(),
-        role,
+        role: 'instructor', // Strictly Instructor/Staff Request
         specialty: specialty.trim() || undefined,
       });
       setSuccess(true);
@@ -53,7 +52,7 @@ export default function RegisterRequest() {
           AuraFi Academy
         </h2>
         <p className="mt-1 text-xs text-slate-400">
-          Solicitud de Alta de Cuenta Escolar
+          Solicitud de Alta de Personal Docente / Staff
         </p>
       </div>
 
@@ -67,7 +66,7 @@ export default function RegisterRequest() {
             >
               <ArrowLeft className="w-3.5 h-3.5" /> Volver al Acceso
             </a>
-            <span className="text-[10px] text-slate-500 font-mono">Simulador Escolar</span>
+            <span className="text-[10px] text-slate-500 font-mono">Portal de Staff</span>
           </div>
 
           {success ? (
@@ -78,7 +77,7 @@ export default function RegisterRequest() {
               <div className="space-y-2">
                 <h3 className="text-sm font-bold text-slate-200">¡Solicitud Enviada con Éxito!</h3>
                 <p className="text-[11px] text-slate-500 leading-relaxed max-w-xs mx-auto">
-                  El administrador ha recibido tu petición en la pestaña de <strong>"Gestor de Cuentas"</strong>. Recibirás tu contraseña temporal una vez aprobada.
+                  El administrador ha recibido tu petición en la pestaña de <strong>"Gestor de Cuentas"</strong>. Una vez aprobada tu cuenta de instructor, recibirás tus credenciales de acceso por correo.
                 </p>
               </div>
               <button
@@ -92,7 +91,7 @@ export default function RegisterRequest() {
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="text-center space-y-1">
                 <p className="text-[11px] text-slate-400">
-                  Rellena los campos para que control escolar evalúe e inicie la creación de tu credencial de acceso.
+                  Rellena los campos para solicitar tu credencial de acceso como instructor o docente de la academia.
                 </p>
               </div>
 
@@ -133,36 +132,6 @@ export default function RegisterRequest() {
 
               <div>
                 <label className="block text-[10px] font-mono uppercase text-slate-400 mb-1.5">
-                  Rol Solicitado
-                </label>
-                <div className="grid grid-cols-2 gap-3 mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setRole('instructor')}
-                    className={`py-2 px-3 text-xs font-semibold rounded-xl border transition cursor-pointer text-center ${
-                      role === 'instructor'
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300'
-                        : 'bg-slate-900/40 border-slate-850 text-slate-500 hover:text-slate-400'
-                    }`}
-                  >
-                    Instructor / Docente
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole('student')}
-                    className={`py-2 px-3 text-xs font-semibold rounded-xl border transition cursor-pointer text-center ${
-                      role === 'student'
-                        ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-300'
-                        : 'bg-slate-900/40 border-slate-850 text-slate-500 hover:text-slate-400'
-                    }`}
-                  >
-                    Alumno / Estudiante
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-mono uppercase text-slate-400 mb-1.5">
                   Materia / Especialidad (Opcional)
                 </label>
                 <input
@@ -183,7 +152,7 @@ export default function RegisterRequest() {
                   {loading ? (
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    'Enviar Solicitud Escolar'
+                    'Enviar Solicitud de Instructor'
                   )}
                 </button>
               </div>
