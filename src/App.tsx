@@ -29,6 +29,7 @@ import { api } from './lib/api';
 import InstructorPanel from './components/InstructorPanel';
 import AdminPanel from './components/AdminPanel';
 import Login from './components/Login';
+import RegisterRequest from './components/RegisterRequest';
 import { supabase } from './lib/supabaseClient';
 
 export default function App() {
@@ -315,7 +316,7 @@ function AppContent() {
     navigate(`/${role}`);
   };
 
-  if (!isAuthenticated || !profile) {
+  if ((!isAuthenticated || !profile) && location.pathname !== '/register') {
     return (
       <Login
         onLoginSuccess={(token, userProfile) => {
@@ -395,36 +396,38 @@ function AppContent() {
           )}
 
           {/* XP Badge and User Profile tag */}
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-950/60 px-3 py-1 rounded-full border border-slate-850/80 flex items-center gap-1.5 shadow-inner">
-              <Award className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span className="text-xs font-semibold text-indigo-300 font-mono tracking-tight">
-                {profile.pointsEarned} XP
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <img 
-                src={profile.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100'} 
-                alt="Profile Avatar" 
-                className="w-7.5 h-7.5 rounded-full border border-slate-800 object-cover"
-              />
-              <div className="hidden lg:block text-left">
-                <p className="text-xs font-semibold text-slate-300 truncate max-w-[100px] leading-tight">
-                  {profile.fullName}
-                </p>
-                <p className="text-[8px] text-teal-400 font-medium tracking-wider font-mono uppercase leading-none mt-0.5">
-                  {profile.certLevel}
-                </p>
+          {profile && (
+            <div className="flex items-center gap-3">
+              <div className="bg-slate-950/60 px-3 py-1 rounded-full border border-slate-850/80 flex items-center gap-1.5 shadow-inner">
+                <Award className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                <span className="text-xs font-semibold text-indigo-300 font-mono tracking-tight">
+                  {profile.pointsEarned} XP
+                </span>
               </div>
+              <div className="flex items-center gap-2">
+                <img 
+                  src={profile.avatarUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100'} 
+                  alt="Profile Avatar" 
+                  className="w-7.5 h-7.5 rounded-full border border-slate-800 object-cover"
+                />
+                <div className="hidden lg:block text-left">
+                  <p className="text-xs font-semibold text-slate-300 truncate max-w-[100px] leading-tight">
+                    {profile.fullName}
+                  </p>
+                  <p className="text-[8px] text-teal-400 font-medium tracking-wider font-mono uppercase leading-none mt-0.5">
+                    {profile.certLevel}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="bg-slate-900/60 hover:bg-slate-850 border border-slate-850/80 text-slate-400 hover:text-slate-200 p-2 rounded-xl transition cursor-pointer"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              className="bg-slate-900/60 hover:bg-slate-850 border border-slate-850/80 text-slate-400 hover:text-slate-200 p-2 rounded-xl transition cursor-pointer"
-              title="Cerrar Sesión"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          )}
         </div>
       </header>
 
@@ -445,7 +448,8 @@ function AppContent() {
         )}
 
         <Routes>
-
+          {/* PUBLIC REGISTRATION ROUTE */}
+          <Route path="/register" element={<RegisterRequest />} />
 
           {/* INSTRUCTOR PANEL ROOT ROUTING */}
           <Route path="/instructor" element={

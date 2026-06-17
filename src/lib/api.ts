@@ -195,4 +195,30 @@ export const api = {
   deleteClip: (courseId: string, clipId: string) => apiFetch<any>(`/api/courses/${courseId}/clips/${clipId}`, {
     method: 'DELETE',
   }),
+
+  // Account Ingestion & Management / Authentication
+  submitRegisterRequest: (payload: { fullName: string; email: string; role: string; specialty?: string }) => apiFetch<any>('/api/auth/register-requests', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  loginWithCredentials: (email: string, password: string) => apiFetch<any>('/api/auth/login-credentials', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  }),
+  forceChangePassword: (payload: { email: string; currentTempPassword: string; newPassword: string }) => apiFetch<any>('/api/auth/change-password-force', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  verifyOtp: (payload: { email: string; otpCode: string }) => apiFetch<{ token: string; profile: any }>('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
+  getRegisterRequests: () => apiFetch<any[]>('/api/auth/register-requests'),
+  approveRegisterRequest: (id: string) => apiFetch<any>(`/api/auth/register-requests/${id}/approve`, {
+    method: 'POST',
+  }),
+  rejectRegisterRequest: (id: string) => apiFetch<any>(`/api/auth/register-requests/${id}/reject`, {
+    method: 'POST',
+  }),
 };
+

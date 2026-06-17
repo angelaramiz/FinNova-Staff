@@ -13,7 +13,13 @@ import {
   AlertCircle,
   Trash2,
   Plus,
-  Check
+  Check,
+  UserCheck,
+  UserX,
+  Lock,
+  Mail,
+  Sparkles,
+  Clipboard
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -36,6 +42,7 @@ interface UserRecord {
 }
 
 export default function AdminPanel() {
+  const [activeTab, setActiveTab] = useState<'directory' | 'requests'>('directory');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Allowed emails state
@@ -47,8 +54,15 @@ export default function AdminPanel() {
   const [allowedError, setAllowedError] = useState<string | null>(null);
   const [allowedSuccess, setAllowedSuccess] = useState<string | null>(null);
 
+  // Registration requests state
+  const [requests, setRequests] = useState<any[]>([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestsError, setRequestsError] = useState<string | null>(null);
+  const [approvalResult, setApprovalResult] = useState<{ email: string; tempPass: string } | null>(null);
+
   useEffect(() => {
     fetchAllowedEmails();
+    fetchRegisterRequests();
   }, []);
 
   const fetchAllowedEmails = async () => {
@@ -60,6 +74,19 @@ export default function AdminPanel() {
       console.error('Error fetching allowed emails:', err);
     } finally {
       setAllowedLoading(false);
+    }
+  };
+
+  const fetchRegisterRequests = async () => {
+    setRequestsLoading(true);
+    try {
+      const data = await api.getRegisterRequests();
+      setRequests(data);
+    } catch (err: any) {
+      console.error('Error fetching register requests:', err);
+      setRequestsError(err.message || 'Error al cargar las solicitudes de cuenta.');
+    } finally {
+      setRequestsLoading(false);
     }
   };
 
@@ -99,9 +126,43 @@ export default function AdminPanel() {
       setAllowedEmails(prev => prev.filter(a => a.email !== emailToDelete));
       setAllowedSuccess(`Acceso revocado exitosamente para ${emailToDelete}`);
     } catch (err: any) {
-      setAllowedError(err.message || 'Error al eliminar la cuenta autorizada.');
+      setAllowedError(err.message || 'Error al revocar la cuenta autorizada.');
     } finally {
       setAllowedLoading(false);
+    }
+  };
+
+  const handleApproveRequest = async (id: string) => {
+    setRequestsLoading(true);
+    setRequestsError(null);
+    try {
+      const res = await api.approveRegisterRequest(id);
+      setApprovalResult({
+        email: res.request.email,
+        tempPass: res.tempPassword
+      });
+      
+      // Refresh allowed list & requests
+      await fetchAllowedEmails();
+      await fetchRegisterRequests();
+    } catch (err: any) {
+      setRequestsError(err.message || 'Error al aprobar la solicitud.');
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  const handleRejectRequest = async (id: string) => {
+    if (!window.confirm('¿Estás seguro de que deseas rechazar esta solicitud de registro?')) return;
+    setRequestsLoading(true);
+    setRequestsError(null);
+    try {
+      await api.rejectRegisterRequest(id);
+      await fetchRegisterRequests();
+    } catch (err: any) {
+      setRequestsError(err.message || 'Error al rechazar la solicitud.');
+    } finally {
+      setRequestsLoading(false);
     }
   };
   
@@ -222,349 +283,535 @@ export default function AdminPanel() {
   };
 
   return (
-    <section id="section-admin-panel" className="space-y-6 text-left animate-fade-in">
+    <section id="section-admin-panel" className="space-y-6 text-left animate-fade-in relative">
       {/* Header title */}
-      <div className="flex items-center gap-3">
-        <div className="bg-teal-500/10 p-2.5 rounded-xl border border-teal-500/15 text-teal-400 shadow-sm">
-          <Database className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-lg font-bold text-slate-100">Panel del Administrador (FinNova Control Hub)</h1>
-          <p className="text-xs text-slate-500 font-normal">Gestiona la seguridad del ecosistema, audita los logs de Gemini/n8n y edita roles corporativos.</p>
-        </div>
-      </div>
-
-      {/* 1. Global statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div>
-            <span className="text-[9px] text-slate-500 font-mono uppercase">Cuentas Activas</span>
-            <h3 className="text-xl font-semibold text-slate-200 mt-1 font-mono">{users.length} Cuentas</h3>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-500/10 p-2.5 rounded-xl border border-indigo-500/15 text-indigo-400 shadow-sm">
+            <Database className="w-5 h-5" />
           </div>
-          <div className="bg-slate-950/40 p-2 rounded-xl text-slate-500"><Users className="w-4.5 h-4.5" /></div>
-        </div>
-
-        <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
           <div>
-            <span className="text-[9px] text-slate-500 font-mono uppercase">Transacciones de IA</span>
-            <h3 className="text-xl font-semibold text-teal-400 mt-1 font-mono">1,820 Runs</h3>
+            <h1 className="text-lg font-bold text-slate-100 font-sans tracking-wide">Panel del Administrador (FinNova Control Hub)</h1>
+            <p className="text-xs text-slate-500 font-normal">Gestiona la seguridad del ecosistema, audita los logs de Gemini/n8n y aprueba registros escolares.</p>
           </div>
-          <div className="bg-teal-500/10 p-2 rounded-xl text-teal-450"><Cpu className="w-4.5 h-4.5" /></div>
         </div>
 
-        <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div>
-            <span className="text-[9px] text-slate-500 font-mono uppercase">Evaluados con Éxito</span>
-            <h3 className="text-xl font-semibold text-teal-400 mt-1 font-mono">92.4%</h3>
-          </div>
-          <div className="bg-teal-500/10 p-2 rounded-xl text-teal-450"><CheckCircle className="w-4.5 h-4.5" /></div>
-        </div>
-
-        <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
-          <div>
-            <span className="text-[9px] text-slate-500 font-mono uppercase">Logs de Auditoría</span>
-            <h3 className="text-xl font-semibold text-slate-200 mt-1 font-mono">{auditLogs.length} Logs</h3>
-          </div>
-          <div className="bg-slate-950/40 p-2 rounded-xl text-slate-500"><FileText className="w-4.5 h-4.5" /></div>
-        </div>
-      </div>
-
-      {/* 2. User Directory & role manager */}
-      <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
-          Directorio Corporativo y Permisos
-        </h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-850/80 text-slate-500 font-mono">
-                <th className="py-2.5 px-4 font-semibold">Nombre Usuario</th>
-                <th className="py-2.5 px-4 font-semibold">Correo</th>
-                <th className="py-2.5 px-4 font-semibold">Puntos XP</th>
-                <th className="py-2.5 px-4 font-semibold">Rol</th>
-                <th className="py-2.5 px-4 font-semibold">KYC Verificación</th>
-                <th className="py-2.5 px-4 text-center font-semibold">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-850/50 font-normal">
-              {users.map(u => (
-                <tr key={u.id} className="hover:bg-slate-950/25 transition duration-150">
-                  <td className="py-3 px-4 font-semibold text-slate-200">{u.fullName}</td>
-                  <td className="py-3 px-4 text-slate-400 font-mono">{u.email}</td>
-                  <td className="py-3 px-4 text-slate-355 font-mono font-medium">{u.points} XP</td>
-                  <td className="py-3 px-4">
-                    <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-semibold uppercase ${
-                      u.role === 'admin' 
-                        ? 'bg-rose-500/5 border-rose-500/15 text-rose-450' 
-                        : u.role === 'instructor'
-                        ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-305'
-                        : 'bg-slate-950/40 border-slate-850/80 text-slate-400'
-                    }`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    {u.verifiedIdentity ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-teal-400 bg-teal-500/5 px-2 py-0.5 rounded-md border border-teal-500/15">
-                        <ShieldCheck className="w-3.5 h-3.5" /> Verificado
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[9px] font-medium text-slate-500 bg-slate-950/40 px-2 py-0.5 rounded-md border border-slate-850/60">
-                        Pendiente
-                      </span>
-                    )}
-                  </td>
-                  <td className="py-3 px-4 text-center">
-                    <div className="flex justify-center gap-2">
-                      <button
-                        onClick={() => handleToggleRole(u.id, u.role)}
-                        className="bg-slate-950/30 hover:bg-slate-900 border border-slate-850 px-2 py-1 rounded-lg transition font-mono text-[9px] font-semibold text-slate-400 cursor-pointer"
-                        title="Cambiar Rol"
-                      >
-                        Rol +
-                      </button>
-                      <button
-                        onClick={() => handleToggleKyc(u.id)}
-                        className="bg-slate-950/30 hover:bg-slate-900 border border-slate-850 px-2 py-1 rounded-lg transition font-mono text-[9px] font-semibold text-slate-400 cursor-pointer"
-                        title="Alternar KYC"
-                      >
-                        KYC
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Allowed Emails Management Directory */}
-      <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-6">
-        <div>
-          <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
-            Directorio de Cuentas Pre-Autorizadas (Control Escolar)
-          </h3>
-          <p className="text-slate-500 text-[10px] font-normal mt-0.5">
-            Autoriza cuentas escolares (correos electrónicos) de estudiantes e instructores. Solo las cuentas en este directorio podrán autenticarse en el sistema.
-          </p>
-        </div>
-
-        {/* Success/Error Alerts */}
-        {(allowedError || allowedSuccess) && (
-          <div className="space-y-2">
-            {allowedError && (
-              <div className="bg-rose-500/5 border border-rose-500/15 text-rose-455 p-3 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{allowedError}</span>
-              </div>
+        {/* Tab Selection */}
+        <div className="flex bg-slate-950/60 p-1 border border-slate-850 rounded-xl">
+          <button
+            onClick={() => setActiveTab('directory')}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold font-mono tracking-wider transition cursor-pointer ${
+              activeTab === 'directory'
+                ? 'bg-indigo-500/10 border border-indigo-500/35 text-indigo-300'
+                : 'text-slate-500 hover:text-slate-355 border-transparent border'
+            }`}
+          >
+            Directorio & Logs
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('requests');
+              fetchRegisterRequests();
+            }}
+            className={`px-4 py-1.5 rounded-lg text-xs font-semibold font-mono tracking-wider transition cursor-pointer relative ${
+              activeTab === 'requests'
+                ? 'bg-indigo-500/10 border border-indigo-500/35 text-indigo-300'
+                : 'text-slate-500 hover:text-slate-355 border-transparent border'
+            }`}
+          >
+            Gestor de Cuentas
+            {requests.filter(r => r.status === 'pending').length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-rose-500 text-neutral-900 text-[8px] font-extrabold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">
+                {requests.filter(r => r.status === 'pending').length}
+              </span>
             )}
-            {allowedSuccess && (
-              <div className="bg-teal-500/5 border border-teal-500/15 text-teal-400 p-3 rounded-xl text-xs flex items-center gap-2">
-                <Check className="w-4 h-4 shrink-0" />
-                <span>{allowedSuccess}</span>
-              </div>
-            )}
-          </div>
-        )}
+          </button>
+        </div>
+      </div>
 
-        {/* Add Allowed Email Form */}
-        <form onSubmit={handleAddAllowedEmail} className="bg-slate-950/20 border border-slate-850/60 p-4 rounded-xl space-y-4">
-          <h4 className="text-[11px] font-semibold text-slate-300 font-mono uppercase tracking-wide">
-            Autorizar Nuevo Miembro
-          </h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 1. Conditionally Render Directory or Account requests */}
+      {activeTab === 'directory' ? (
+        <>
+          {/* Global statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+            <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase">Cuentas Activas</span>
+                <h3 className="text-xl font-semibold text-slate-200 mt-1 font-mono">{users.length} Cuentas</h3>
+              </div>
+              <div className="bg-slate-950/40 p-2 rounded-xl text-slate-500"><Users className="w-4.5 h-4.5" /></div>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase">Transacciones de IA</span>
+                <h3 className="text-xl font-semibold text-teal-400 mt-1 font-mono">1,820 Runs</h3>
+              </div>
+              <div className="bg-teal-500/10 p-2 rounded-xl text-teal-450"><Cpu className="w-4.5 h-4.5" /></div>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase">Evaluados con Éxito</span>
+                <h3 className="text-xl font-semibold text-teal-400 mt-1 font-mono">92.4%</h3>
+              </div>
+              <div className="bg-teal-500/10 p-2 rounded-xl text-teal-450"><CheckCircle className="w-4.5 h-4.5" /></div>
+            </div>
+
+            <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 flex items-center justify-between shadow-sm">
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase">Logs de Auditoría</span>
+                <h3 className="text-xl font-semibold text-slate-200 mt-1 font-mono">{auditLogs.length} Logs</h3>
+              </div>
+              <div className="bg-slate-950/40 p-2 rounded-xl text-slate-500"><FileText className="w-4.5 h-4.5" /></div>
+            </div>
+          </div>
+
+          {/* User Directory & role manager */}
+          <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+              Directorio Corporativo y Permisos
+            </h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850/80 text-slate-500 font-mono">
+                    <th className="py-2.5 px-4 font-semibold">Nombre Usuario</th>
+                    <th className="py-2.5 px-4 font-semibold">Correo</th>
+                    <th className="py-2.5 px-4 font-semibold">Puntos XP</th>
+                    <th className="py-2.5 px-4 font-semibold">Rol</th>
+                    <th className="py-2.5 px-4 font-semibold">KYC Verificación</th>
+                    <th className="py-2.5 px-4 text-center font-semibold">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850/50 font-normal">
+                  {users.map(u => (
+                    <tr key={u.id} className="hover:bg-slate-955/20 transition duration-150">
+                      <td className="py-3 px-4 font-semibold text-slate-200">{u.fullName}</td>
+                      <td className="py-3 px-4 text-slate-400 font-mono">{u.email}</td>
+                      <td className="py-3 px-4 text-slate-355 font-mono font-medium">{u.points} XP</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-semibold uppercase ${
+                          u.role === 'admin' 
+                            ? 'bg-rose-500/5 border-rose-500/15 text-rose-450' 
+                            : u.role === 'instructor'
+                            ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-305'
+                            : 'bg-slate-950/40 border-slate-850/80 text-slate-400'
+                        }`}>
+                          {u.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {u.verifiedIdentity ? (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-medium text-teal-400 bg-teal-500/5 px-2 py-0.5 rounded-md border border-teal-500/15">
+                            <ShieldCheck className="w-3.5 h-3.5" /> Verificado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-medium text-slate-500 bg-slate-950/40 px-2 py-0.5 rounded-md border border-slate-850/60">
+                            Pendiente
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => handleToggleRole(u.id, u.role)}
+                            className="bg-slate-955/35 hover:bg-slate-900 border border-slate-850 px-2 py-1 rounded-lg transition font-mono text-[9px] font-semibold text-slate-400 cursor-pointer"
+                            title="Cambiar Rol"
+                          >
+                            Rol +
+                          </button>
+                          <button
+                            onClick={() => handleToggleKyc(u.id)}
+                            className="bg-slate-955/35 hover:bg-slate-900 border border-slate-850 px-2 py-1 rounded-lg transition font-mono text-[9px] font-semibold text-slate-400 cursor-pointer"
+                            title="Alternar KYC"
+                          >
+                            KYC
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Allowed Emails Management Directory */}
+          <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-6">
             <div>
-              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Nombre Completo</label>
+              <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                Directorio de Cuentas Pre-Autorizadas (Control Escolar)
+              </h3>
+              <p className="text-slate-500 text-[10px] font-normal mt-0.5">
+                Autoriza cuentas escolares (correos electrónicos) de estudiantes e instructores. Solo las cuentas en este directorio podrán autenticarse en el sistema.
+              </p>
+            </div>
+
+            {(allowedError || allowedSuccess) && (
+              <div className="space-y-2">
+                {allowedError && (
+                  <div className="bg-rose-500/5 border border-rose-500/15 text-rose-455 p-3 rounded-xl text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{allowedError}</span>
+                  </div>
+                )}
+                {allowedSuccess && (
+                  <div className="bg-teal-500/5 border border-teal-500/15 text-teal-400 p-3 rounded-xl text-xs flex items-center gap-2">
+                    <Check className="w-4 h-4 shrink-0" />
+                    <span>{allowedSuccess}</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleAddAllowedEmail} className="bg-slate-955/20 border border-slate-850/60 p-4 rounded-xl space-y-4">
+              <h4 className="text-[11px] font-semibold text-slate-300 font-mono uppercase tracking-wide">
+                Autorizar Nuevo Miembro
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Nombre Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={newFullName}
+                    onChange={(e) => setNewFullName(e.target.value)}
+                    placeholder="ej. Estudiante FinNova"
+                    className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Correo Escolar</label>
+                  <input
+                    type="email"
+                    required
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="ej. student.finance@finnova.edu"
+                    className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Rol en la Academia</label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value as any)}
+                    className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+                  >
+                    <option value="student">Alumno (student)</option>
+                    <option value="instructor">Instructor (instructor)</option>
+                    <option value="admin">Administrador (admin)</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={allowedLoading}
+                  className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Autorizar Acceso
+                </button>
+              </div>
+            </form>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850/80 text-slate-500 font-mono">
+                    <th className="py-2 px-4">Nombre Completo</th>
+                    <th className="py-2 px-4">Correo Electrónico</th>
+                    <th className="py-2 px-4">Rol en Sistema</th>
+                    <th className="py-2 px-4">Fecha Autorización</th>
+                    <th className="py-2 px-4 text-center">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-850/50">
+                  {allowedLoading && allowedEmails.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-500">
+                        Cargando directorio de acceso...
+                      </td>
+                    </tr>
+                  ) : allowedEmails.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-slate-500">
+                        No hay correos autorizados registrados.
+                      </td>
+                    </tr>
+                  ) : (
+                    allowedEmails.map((allowed) => (
+                      <tr key={allowed.email} className="hover:bg-slate-955/20 transition duration-150">
+                        <td className="py-3 px-4 font-semibold text-slate-200">{allowed.fullName}</td>
+                        <td className="py-3 px-4 text-slate-405 font-mono">{allowed.email}</td>
+                        <td className="py-3 px-4">
+                          <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-semibold uppercase ${
+                            allowed.role === 'admin' 
+                              ? 'bg-rose-500/5 border-rose-500/15 text-rose-455' 
+                              : allowed.role === 'instructor'
+                              ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-305'
+                              : 'bg-slate-950/40 border-slate-850/85 text-slate-400'
+                          }`}>
+                            {allowed.role}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 font-mono">
+                          {new Date(allowed.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 text-center">
+                          <button
+                            onClick={() => handleDeleteAllowedEmail(allowed.email)}
+                            disabled={allowedLoading}
+                            className="bg-slate-955/40 hover:bg-rose-950/20 border border-slate-850 hover:border-rose-900 text-slate-400 hover:text-rose-450 p-1.5 rounded-lg transition cursor-pointer disabled:opacity-50"
+                            title="Revocar Acceso"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Technical Audit Logs */}
+          <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                  Bitácora de Auditoría Técnica
+                </h3>
+                <p className="text-slate-500 text-[10px] font-normal">Trazabilidad detallada de transacciones, ejecuciones de workers y respuestas de Gemini.</p>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExportLogs('csv')}
+                  className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-455 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> CSV
+                </button>
+                <button
+                  onClick={() => handleExportLogs('pdf')}
+                  className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-455 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" /> PDF
+                </button>
+              </div>
+            </div>
+
+            <div className="relative max-w-sm">
               <input
                 type="text"
-                required
-                value={newFullName}
-                onChange={(e) => setNewFullName(e.target.value)}
-                placeholder="ej. Estudiante FinNova"
-                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por acción o log output..."
+                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-300 outline-none focus:border-teal-500/50 font-mono font-normal"
               />
+              <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-3" />
             </div>
-            <div>
-              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Correo Escolar</label>
-              <input
-                type="email"
-                required
-                value={newEmail}
-                onChange={(e) => setNewEmail(e.target.value)}
-                placeholder="ej. student.finance@finnova.edu"
-                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] text-slate-500 font-mono uppercase mb-1">Rol en la Academia</label>
-              <select
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value as any)}
-                className="w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-350 outline-none focus:border-teal-500/50"
-              >
-                <option value="student">Alumno (student)</option>
-                <option value="instructor">Instructor (instructor)</option>
-                <option value="admin">Administrador (admin)</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              disabled={allowedLoading}
-              className="bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              <Plus className="w-3.5 h-3.5" /> Autorizar Acceso
-            </button>
-          </div>
-        </form>
 
-        {/* Allowed Emails Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-850/80 text-slate-500 font-mono">
-                <th className="py-2 px-4">Nombre Completo</th>
-                <th className="py-2 px-4">Correo Electrónico</th>
-                <th className="py-2 px-4">Rol en Sistema</th>
-                <th className="py-2 px-4">Fecha Autorización</th>
-                <th className="py-2 px-4 text-center">Acción</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-850/50">
-              {allowedLoading && allowedEmails.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
-                    Cargando directorio de acceso...
-                  </td>
-                </tr>
-              ) : allowedEmails.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-6 text-center text-slate-500">
-                    No hay correos autorizados registrados.
-                  </td>
-                </tr>
-              ) : (
-                allowedEmails.map((allowed) => (
-                  <tr key={allowed.email} className="hover:bg-slate-955/20 transition duration-150">
-                    <td className="py-3 px-4 font-semibold text-slate-200">{allowed.fullName}</td>
-                    <td className="py-3 px-4 text-slate-405 font-mono">{allowed.email}</td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-semibold uppercase ${
-                        allowed.role === 'admin' 
-                          ? 'bg-rose-500/5 border-rose-500/15 text-rose-455' 
-                          : allowed.role === 'instructor'
-                          ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-305'
-                          : 'bg-slate-950/40 border-slate-850/85 text-slate-400'
-                      }`}>
-                        {allowed.role}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-slate-500 font-mono">
-                      {new Date(allowed.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <button
-                        onClick={() => handleDeleteAllowedEmail(allowed.email)}
-                        disabled={allowedLoading}
-                        className="bg-slate-950/40 hover:bg-rose-950/20 border border-slate-850 hover:border-rose-900 text-slate-400 hover:text-rose-450 p-1.5 rounded-lg transition cursor-pointer disabled:opacity-50"
-                        title="Revocar Acceso"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
+            <div className="overflow-x-auto mt-2">
+              <table className="w-full text-xs text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-850/80 text-slate-500 font-mono font-semibold">
+                    <th className="py-2 px-4">Fecha</th>
+                    <th className="py-2 px-4">ID Transacción</th>
+                    <th className="py-2 px-4">Acción</th>
+                    <th className="py-2 px-4">Tiempo (ms)</th>
+                    <th className="py-2 px-4">Estado</th>
+                    <th className="py-2 px-4">Output Log</th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 3. Technical Audit Logs */}
-      <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                </thead>
+                <tbody className="divide-y divide-slate-850/50 font-normal font-mono text-[10px]">
+                  {filteredLogs.map(log => (
+                    <tr key={log.id} className="hover:bg-slate-955/25 transition duration-155">
+                      <td className="py-2 px-4 text-slate-500">{new Date(log.timestamp).toLocaleTimeString()}</td>
+                      <td className="py-2 px-4 text-slate-400 font-medium">{log.id}</td>
+                      <td className="py-2 px-4 text-teal-400/80 font-medium">{log.actionType}</td>
+                      <td className="py-2 px-4 text-slate-350 font-medium">{log.durationMs} ms</td>
+                      <td className="py-2 px-4">
+                        {log.status === 'SUCCESS' ? (
+                          <span className="text-teal-405 font-semibold">SUCCESS</span>
+                        ) : (
+                          <span className="text-rose-450 font-semibold">FAILED</span>
+                        )}
+                      </td>
+                      <td className="py-2 px-4 text-slate-500 truncate max-w-[280px] font-normal" title={log.output}>
+                        {log.output}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        /* Gestor de Cuentas Tab */
+        <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-6">
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
-              Bitácora de Auditoría Técnica
+              Solicitudes de Registro Escolar (Ingesta de Cuentas)
             </h3>
-            <p className="text-slate-500 text-[10px] font-normal">Trazabilidad detallada de transacciones, ejecuciones de workers y respuestas de Gemini.</p>
+            <p className="text-slate-500 text-[10px] mt-0.5">
+              Evalúa y aprueba el alta de instructores y alumnos que solicitaron cuenta mediante el formulario público `/register`.
+            </p>
           </div>
 
-          {/* Export tools */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleExportLogs('csv')}
-              className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-450 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" /> CSV
-            </button>
-            <button
-              onClick={() => handleExportLogs('pdf')}
-              className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-450 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" /> PDF
-            </button>
-          </div>
-        </div>
+          {requestsError && (
+            <div className="bg-rose-500/5 border border-rose-500/15 text-rose-455 p-3 rounded-xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{requestsError}</span>
+            </div>
+          )}
 
-        {/* Filter Input */}
-        <div className="relative max-w-sm">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por acción o log output..."
-            className="w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-300 outline-none focus:border-teal-500/50 font-mono font-normal"
-          />
-          <Search className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-3" />
-        </div>
-
-        {/* Audit Log Table */}
-        <div className="overflow-x-auto mt-2">
-          <table className="w-full text-xs text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-850/80 text-slate-500 font-mono font-semibold">
-                <th className="py-2 px-4">Fecha</th>
-                <th className="py-2 px-4">ID Transacción</th>
-                <th className="py-2 px-4">Acción</th>
-                <th className="py-2 px-4">Tiempo (ms)</th>
-                <th className="py-2 px-4">Estado</th>
-                <th className="py-2 px-4">Output Log</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-850/50 font-normal font-mono text-[10px]">
-              {filteredLogs.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-6 text-center text-slate-500 font-normal text-xs">
-                    Ningún registro coincide con la búsqueda.
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr className="border-b border-slate-850/80 text-slate-500 font-mono font-semibold">
+                  <th className="py-2 px-4">Solicitante</th>
+                  <th className="py-2 px-4">Correo</th>
+                  <th className="py-2 px-4">Rol Solicitado</th>
+                  <th className="py-2 px-4">Especialidad/Materia</th>
+                  <th className="py-2 px-4">Fecha Solicitud</th>
+                  <th className="py-2 px-4">Estado</th>
+                  <th className="py-2 px-4 text-center">Acciones</th>
                 </tr>
-              ) : (
-                filteredLogs.map(log => (
-                  <tr key={log.id} className="hover:bg-slate-955/25 transition duration-155">
-                    <td className="py-2 px-4 text-slate-500">{new Date(log.timestamp).toLocaleTimeString()}</td>
-                    <td className="py-2 px-4 text-slate-400 font-medium">{log.id}</td>
-                    <td className="py-2 px-4 text-teal-400/80 font-medium">{log.actionType}</td>
-                    <td className="py-2 px-4 text-slate-350 font-medium">{log.durationMs} ms</td>
-                    <td className="py-2 px-4">
-                      {log.status === 'SUCCESS' ? (
-                        <span className="text-teal-405 font-semibold">SUCCESS</span>
-                      ) : (
-                        <span className="text-rose-450 font-semibold">FAILED</span>
-                      )}
-                    </td>
-                    <td className="py-2 px-4 text-slate-500 truncate max-w-[280px] font-normal" title={log.output}>
-                      {log.output}
+              </thead>
+              <tbody className="divide-y divide-slate-850/50">
+                {requestsLoading && requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-slate-500">
+                      Cargando solicitudes de registro...
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : requests.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-6 text-center text-slate-500">
+                      No hay solicitudes de registro escolares registradas.
+                    </td>
+                  </tr>
+                ) : (
+                  requests.map((req: any) => (
+                    <tr key={req.id} className="hover:bg-slate-955/20 transition duration-150">
+                      <td className="py-3 px-4 font-semibold text-slate-200">{req.fullName}</td>
+                      <td className="py-3 px-4 text-slate-400 font-mono">{req.email}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded border text-[9px] font-mono font-semibold uppercase ${
+                          req.role === 'instructor'
+                            ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+                            : 'bg-slate-950 border-slate-850 text-slate-400'
+                        }`}>
+                          {req.role}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-slate-400">{req.specialty || 'N/A'}</td>
+                      <td className="py-3 px-4 text-slate-500 font-mono">
+                        {new Date(req.createdAt).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-semibold uppercase ${
+                          req.status === 'approved'
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : req.status === 'rejected'
+                            ? 'bg-rose-500/10 text-rose-400'
+                            : 'bg-amber-500/10 text-amber-400 animate-pulse'
+                        }`}>
+                          {req.status === 'approved' ? 'Aprobado' : req.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {req.status === 'pending' ? (
+                          <div className="flex justify-center gap-2">
+                            <button
+                              onClick={() => handleApproveRequest(req.id)}
+                              className="bg-indigo-500/10 hover:bg-indigo-500 text-indigo-300 hover:text-slate-950 border border-indigo-500/20 hover:border-indigo-500 px-2.5 py-1 rounded-lg transition text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              title="Aprobar e Invitar"
+                            >
+                              <UserCheck className="w-3.5 h-3.5" /> Aprobar
+                            </button>
+                            <button
+                              onClick={() => handleRejectRequest(req.id)}
+                              className="bg-rose-500/5 hover:bg-rose-600/20 border border-rose-500/20 hover:border-rose-500 text-rose-400 px-2.5 py-1 rounded-lg transition text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                              title="Rechazar"
+                            >
+                              <UserX className="w-3.5 h-3.5" /> Rechazar
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-slate-600 font-mono">Procesado</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Credentials temporary modal (Approval Modal) */}
+      {approvalResult && (
+        <div className="fixed inset-0 bg-[#060b16]/75 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+          <div className="bg-[#0a0f1d] border border-slate-800/80 rounded-3xl p-6 shadow-2xl max-w-md w-full mx-4 space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
+
+            <div className="text-center space-y-2">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-2">
+                <Sparkles className="h-6 w-6 animate-pulse" />
+              </div>
+              <h3 className="text-base font-bold text-slate-200">¡Cuenta Autorizada con Éxito!</h3>
+              <p className="text-[11px] text-slate-500">
+                Se han generado las credenciales para el acceso del docente. El sistema envió la invitación simulada por correo.
+              </p>
+            </div>
+
+            <div className="bg-slate-950/60 border border-slate-850 p-4 rounded-2xl space-y-3 font-sans">
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase block">Usuario (Correo)</span>
+                <span className="text-xs font-semibold text-slate-300 font-mono block">{approvalResult.email}</span>
+              </div>
+              <div>
+                <span className="text-[9px] text-slate-500 font-mono uppercase block">Contraseña Temporal</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-sm font-bold text-indigo-400 font-mono tracking-wider">{approvalResult.tempPass}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(approvalResult.tempPass);
+                      alert('Contraseña temporal copiada al portapapeles.');
+                    }}
+                    className="p-1 bg-slate-900/80 border border-slate-800 rounded-lg hover:text-indigo-400 transition cursor-pointer"
+                    title="Copiar Contraseña"
+                  >
+                    <Clipboard className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-3 flex items-start gap-2 text-[10px] text-indigo-400/90 leading-normal">
+              <Lock className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>
+                El usuario deberá cambiar esta contraseña obligatoriamente al ingresar por primera vez. Se requerirá OTP en cada inicio de sesión.
+              </span>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setApprovalResult(null)}
+                className="w-full py-2 px-4 bg-indigo-500 hover:bg-indigo-400 text-slate-955 text-xs font-extrabold rounded-xl shadow-md transition cursor-pointer text-center font-sans"
+              >
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
