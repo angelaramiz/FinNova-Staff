@@ -223,6 +223,10 @@ export const api = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  requestPasswordReset: (email: string) => apiFetch<any>('/api/auth/request-password-reset', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  }),
   getRegisterRequests: () => apiFetch<any[]>('/api/auth/register-requests'),
   approveRegisterRequest: (id: string) => apiFetch<any>(`/api/auth/register-requests/${id}/approve`, {
     method: 'POST',
