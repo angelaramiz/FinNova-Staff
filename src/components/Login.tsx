@@ -606,13 +606,20 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             /* OTP Verification Screen */
             <form className="space-y-5 animate-fade-in" onSubmit={handleOtpSubmit}>
               <div className="text-center space-y-1.5">
-                <div className="mx-auto flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-405 text-indigo-400">
+                <div className="mx-auto flex items-center justify-center h-10 w-10 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                   <ShieldCheck className="h-5 w-5 animate-pulse" />
                 </div>
                 <h3 className="text-xs font-bold text-slate-200 font-sans">Verificación OTP Requerida</h3>
                 <p className="text-[10px] text-slate-500 leading-normal">
                   Hemos enviado un código OTP de 6 dígitos a tu correo.
                 </p>
+              </div>
+
+              <div className="bg-indigo-500/5 border border-indigo-500/20 text-indigo-300 p-2.5 rounded-xl text-[10px] leading-normal flex items-start gap-2">
+                <Lock className="w-3.5 h-3.5 mt-0.5 shrink-0 text-indigo-450" />
+                <span>
+                  <strong>Seguridad de la Cuenta:</strong> Por motivos de seguridad institucional, cada vez que inicies sesión en la plataforma se te enviará un nuevo código de verificación OTP a tu correo registrado.
+                </span>
               </div>
 
               <div>

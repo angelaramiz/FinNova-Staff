@@ -95,6 +95,14 @@ export default function RegisterRequest() {
                 </p>
               </div>
 
+              <div className="bg-amber-500/10 border border-amber-500/20 text-amber-400 p-3 rounded-2xl text-[11px] leading-relaxed flex items-start gap-2.5">
+                <AlertCircle className="w-4.5 h-4.5 mt-0.5 shrink-0 text-amber-400" />
+                <div>
+                  <strong className="font-semibold block mb-0.5">Aviso Importante:</strong>
+                  Una vez aprobada tu solicitud por el administrador, recibirás un correo electrónico con tus credenciales temporales. Deberás cambiar esta contraseña al iniciar sesión por primera vez.
+                </div>
+              </div>
+
               {error && (
                 <div className="bg-rose-500/5 border border-rose-500/20 text-rose-455 p-3 rounded-2xl text-[11px] flex items-start gap-2.5 animate-shake">
                   <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />

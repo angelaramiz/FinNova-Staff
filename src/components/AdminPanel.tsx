@@ -369,8 +369,11 @@ export default function AdminPanel() {
 
           {/* User Directory & role manager */}
           <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center">
               Directorio Corporativo y Permisos
+              <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded ml-2 normal-case">
+                <span className="text-[10px] font-light leading-none">×</span> próximamente
+              </span>
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
@@ -581,13 +584,16 @@ export default function AdminPanel() {
           <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center">
                   Bitácora de Auditoría Técnica
+                  <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded ml-2 normal-case">
+                    <span className="text-[10px] font-light leading-none">×</span> próximamente
+                  </span>
                 </h3>
                 <p className="text-slate-500 text-[10px] font-normal">Trazabilidad detallada de transacciones, ejecuciones de workers y respuestas de Gemini.</p>
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 items-center">
                 <button
                   onClick={() => handleExportLogs('csv')}
                   className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-455 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
@@ -600,6 +606,9 @@ export default function AdminPanel() {
                 >
                   <Download className="w-3.5 h-3.5" /> PDF
                 </button>
+                <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded">
+                  <span className="text-[10px] font-light leading-none">×</span> próximamente
+                </span>
               </div>
             </div>
 
