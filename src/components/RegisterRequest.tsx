@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { ClipboardCheck, ArrowLeft, RefreshCw, AlertCircle, Sparkles } from 'lucide-react';
 
@@ -9,6 +9,35 @@ export default function RegisterRequest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<boolean>(false);
+  const [countdown, setCountdown] = useState(5);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (success) {
+      setCountdown(5);
+      interval = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [success]);
+
+  const handleRedirect = () => {
+    alert("La aprobación de tu cuenta puede tardar un poco en procesarse, estáte atento a tu correo.");
+    window.location.href = '/';
+  };
+
+  useEffect(() => {
+    if (success && countdown === 0) {
+      handleRedirect();
+    }
+  }, [success, countdown]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,12 +109,21 @@ export default function RegisterRequest() {
                   El administrador ha recibido tu petición en la pestaña de <strong>"Gestor de Cuentas"</strong>. Una vez aprobada tu cuenta de instructor, recibirás tus credenciales de acceso por correo.
                 </p>
               </div>
-              <button
-                onClick={() => setSuccess(false)}
-                className="mt-4 px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 text-xs font-bold rounded-xl shadow-md transition cursor-pointer"
-              >
-                Enviar otra Solicitud
-              </button>
+              <div className="pt-2 flex flex-col gap-2">
+                <button
+                  onClick={handleRedirect}
+                  disabled={countdown > 0}
+                  className="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-slate-950 text-xs font-bold rounded-xl shadow-md transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {countdown > 0 ? `Entendido (${countdown}s)` : 'Entendido'}
+                </button>
+                <button
+                  onClick={() => setSuccess(false)}
+                  className="text-[10px] text-slate-500 hover:text-slate-400 transition underline font-mono cursor-pointer"
+                >
+                  Enviar otra Solicitud
+                </button>
+              </div>
             </div>
           ) : (
             <form className="space-y-5" onSubmit={handleSubmit}>
