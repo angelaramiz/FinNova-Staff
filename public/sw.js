@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.0.1';
 const CACHE_NAME = `finnova-cache-staff-v${CACHE_VERSION}`;
 
 const ASSETS_TO_CACHE = [
