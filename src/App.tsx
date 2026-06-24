@@ -64,6 +64,7 @@ function AppContent() {
 
   // Sync utilities
   const [loading, setLoading] = useState(true);
+  const [backendWarming, setBackendWarming] = useState(true);
 
   // Service Worker Update States
   const [swRegistration, setSwRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -80,11 +81,36 @@ function AppContent() {
   // Pre-warm backend API (mitigates cold start latency on Render free tier)
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || '';
-    if (apiUrl) {
-      fetch(`${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}/api/health`)
-        .then(() => console.log('[API] Backend pre-warm ping triggered successfully'))
-        .catch(() => {});
+    if (!apiUrl) {
+      setBackendWarming(false);
+      return;
     }
+
+    const cleanApiUrl = apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl;
+    let active = true;
+
+    async function checkHealth() {
+      try {
+        const response = await fetch(`${cleanApiUrl}/api/health`);
+        if (response.ok && active) {
+          console.log('[API] Backend connection warmed up successfully');
+          setBackendWarming(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('[API] Backend ping failed, service might be asleep. Retrying...', err);
+      }
+      
+      if (active) {
+        setTimeout(checkHealth, 4000); // Retry every 4 seconds
+      }
+    }
+
+    checkHealth();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Synchronize view mode state based on browser URL
@@ -329,6 +355,7 @@ function AppContent() {
   if ((!isAuthenticated || !profile) && location.pathname !== '/register') {
     return (
       <Login
+        backendWarming={backendWarming}
         onLoginSuccess={(token, userProfile) => {
           if (userProfile.role !== 'instructor' && userProfile.role !== 'admin') {
             alert('Acceso restringido a instructores y administradores.');
