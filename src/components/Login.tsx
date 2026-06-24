@@ -153,12 +153,14 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
     setError(null);
     setLoading(true);
     try {
+      const tempPasswordToUse = otpCode ? otpCode : password;
       await api.forceChangePassword({
         email: email.trim(),
-        currentTempPassword: password,
+        currentTempPassword: tempPasswordToUse,
         newPassword
       });
       setPassword(newPassword);
+      setOtpCode('');
       setNewPassword('');
       setConfirmPassword('');
       setStep('login');
