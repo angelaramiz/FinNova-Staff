@@ -77,6 +77,16 @@ function AppContent() {
   const [projectFileUrl, setProjectFileUrl] = useState('');
   const [exportingCV, setExportingCV] = useState(false);
 
+  // Pre-warm backend API (mitigates cold start latency on Render free tier)
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL || '';
+    if (apiUrl) {
+      fetch(`${apiUrl.endsWith('/') ? apiUrl.slice(0, -1) : apiUrl}/api/health`)
+        .then(() => console.log('[API] Backend pre-warm ping triggered successfully'))
+        .catch(() => {});
+    }
+  }, []);
+
   // Synchronize view mode state based on browser URL
   useEffect(() => {
     if (location.pathname.startsWith('/admin')) {
