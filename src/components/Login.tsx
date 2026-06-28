@@ -14,7 +14,6 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
-  const [loginMode, setLoginMode] = useState<'bypass' | 'credentials'>('credentials');
   const [step, setStep] = useState<'login' | 'force-change' | 'otp' | 'reset'>('login');
 
   const [loading, setLoading] = useState(false);
@@ -58,11 +57,7 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
     }
   };
 
-  // Seeded mock account options for easy bypass
-  const mockAccounts = [
-    { email: 'admin@finnova.academy', label: 'Administrador Master', role: 'Administrador' },
-    { email: 'profesor.senior@finanzas.edu', label: 'Profe Finanzas Senior', role: 'Instructor' }
-  ];
+
 
   // Check if real Supabase environment variables are configured
   const isRealSupabaseConfigured = 
@@ -117,23 +112,18 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
     setLoading(true);
 
     try {
-      if (loginMode === 'bypass') {
-        const response = await api.loginSimulated(email.trim());
+      if (!password) {
+        setError('Por favor, ingresa tu contraseña.');
+        setLoading(false);
+        return;
+      }
+      const response = await api.loginWithCredentials(email.trim(), password);
+      if (response.status === 'MUST_CHANGE_PASSWORD') {
+        setStep('force-change');
+      } else if (response.status === 'OTP_REQUIRED') {
+        setStep('otp');
+      } else if (response.token && response.profile) {
         onLoginSuccess(response.token, response.profile);
-      } else {
-        if (!password) {
-          setError('Por favor, ingresa tu contraseña.');
-          setLoading(false);
-          return;
-        }
-        const response = await api.loginWithCredentials(email.trim(), password);
-        if (response.status === 'MUST_CHANGE_PASSWORD') {
-          setStep('force-change');
-        } else if (response.status === 'OTP_REQUIRED') {
-          setStep('otp');
-        } else if (response.token && response.profile) {
-          onLoginSuccess(response.token, response.profile);
-        }
       }
     } catch (err: any) {
       setError(err.message || 'Error al validar las credenciales de personal.');
@@ -228,19 +218,7 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
     }
   };
 
-  const handleSelectMock = async (mockEmail: string) => {
-    setError(null);
-    setInfoMessage(null);
-    setLoading(true);
-    try {
-      const response = await api.loginSimulated(mockEmail);
-      onLoginSuccess(response.token, response.profile);
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión con la cuenta piloto.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   return (
     <div id="staff-login-view" className="min-h-screen bg-[#060b16] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
@@ -290,168 +268,89 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
 
           {step === 'login' && (
             <>
-              {/* Login mode selector tabs */}
-              <div className="flex bg-slate-950/60 p-1 border border-slate-850 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginMode('credentials');
-                    setError(null);
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold font-mono uppercase tracking-wider transition cursor-pointer text-center ${
-                    loginMode === 'credentials'
-                      ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 shadow-inner'
-                      : 'text-slate-500 hover:text-slate-400 border-transparent border'
-                  }`}
-                >
-                  Contraseña Real
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setLoginMode('bypass');
-                    setError(null);
-                  }}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold font-mono uppercase tracking-wider transition cursor-pointer text-center ${
-                    loginMode === 'bypass'
-                      ? 'bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 shadow-inner'
-                      : 'text-slate-500 hover:text-slate-400 border-transparent border'
-                  }`}
-                >
-                  Bypass Sandbox
-                </button>
-              </div>
-
               <div className="text-center space-y-1 pt-2">
                 <h3 className="text-xs font-bold text-slate-200">
-                  {loginMode === 'credentials' ? 'Acceso Seguro con Contraseña' : 'Bypass Simulado (Desarrollo)'}
+                  Acceso Seguro con Contraseña
                 </h3>
                 <p className="text-[10px] text-slate-500 leading-normal">
-                  {loginMode === 'credentials' 
-                    ? 'Ingresa tus credenciales de staff. Se enviará un OTP por correo.' 
-                    : 'Bypassea la autenticación validando directamente tu dirección de correo.'}
+                  Ingresa tus credenciales de staff. Se enviará un OTP por correo.
                 </p>
               </div>
 
-              {loginMode === 'credentials' ? (
-                /* Traditional Password Login Form */
-                <form className="space-y-4" onSubmit={handleLoginSubmit}>
-                  <div>
-                    <label htmlFor="email" className="block text-[10px] font-mono uppercase text-slate-450 mb-1.5">
-                      Correo Institucional
-                    </label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-4 w-4 text-slate-650" />
-                      </div>
-                      <input
-                        id="email"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ej. admin@finnova.academy"
-                        className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
-                      />
+              <form className="space-y-4" onSubmit={handleLoginSubmit}>
+                <div>
+                  <label htmlFor="email" className="block text-[10px] font-mono uppercase text-slate-450 mb-1.5">
+                    Correo Institucional
+                  </label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-4 w-4 text-slate-650" />
                     </div>
+                    <input
+                      id="email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="ej. admin@finnova.academy"
+                      className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
+                    />
                   </div>
+                </div>
 
-                  <div>
-                    <label htmlFor="password" className="block text-[10px] font-mono uppercase text-slate-450 mb-1.5">
-                      Contraseña
-                    </label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Key className="h-4 w-4 text-slate-650" />
-                      </div>
-                      <input
-                        id="password"
-                        type="password"
-                        required
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
-                      />
+                <div>
+                  <label htmlFor="password" className="block text-[10px] font-mono uppercase text-slate-450 mb-1.5">
+                    Contraseña
+                  </label>
+                  <div className="relative rounded-xl shadow-sm">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-4 w-4 text-slate-650" />
                     </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <div className="text-xs"></div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setStep('reset');
-                          setError(null);
-                          setInfoMessage(null);
-                        }}
-                        className="text-[11px] font-medium text-indigo-400 hover:text-indigo-350 transition cursor-pointer"
-                      >
-                        ¿Olvidaste tu contraseña?
-                      </button>
-                    </div>
+                    <input
+                      id="password"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
+                    />
                   </div>
-
-                  <div className="pt-2">
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="text-xs"></div>
                     <button
-                      type="submit"
-                      disabled={loading || backendWarming}
-                      className="w-full flex justify-center items-center gap-2 py-2.5 px-4 bg-indigo-500 hover:bg-indigo-400 text-slate-955 text-xs font-extrabold rounded-xl shadow-md transition duration-150 cursor-pointer disabled:opacity-50"
+                      type="button"
+                      onClick={() => {
+                        setStep('reset');
+                        setError(null);
+                        setInfoMessage(null);
+                      }}
+                      className="text-[11px] font-medium text-indigo-400 hover:text-indigo-355 transition cursor-pointer"
                     >
-                      {backendWarming ? (
-                        <>
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                          Despertando Servidor...
-                        </>
-                      ) : loading ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        'Iniciar Sesión'
-                      )}
+                      ¿Olvidaste tu contraseña?
                     </button>
                   </div>
-                </form>
-              ) : (
-                /* Sandbox Email Bypass Form */
-                <form className="space-y-4" onSubmit={handleLoginSubmit}>
-                  <div>
-                    <label htmlFor="email-bypass" className="block text-[10px] font-mono uppercase text-slate-450 mb-1.5">
-                      Validar por correo electrónico
-                    </label>
-                    <div className="relative rounded-xl shadow-sm">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Mail className="h-4 w-4 text-slate-650" />
-                      </div>
-                      <input
-                        id="email-bypass"
-                        type="email"
-                        required
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="ej. admin@finnova.academy"
-                        className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition font-normal"
-                      />
-                    </div>
-                  </div>
+                </div>
 
-                  <div>
-                    <button
-                      type="submit"
-                      disabled={loading || backendWarming}
-                      className="w-full flex justify-center items-center gap-2 py-2 px-4 border border-slate-800 hover:border-slate-700 text-xs font-semibold rounded-xl text-slate-305 bg-slate-900/40 hover:bg-slate-900/90 transition duration-150 cursor-pointer"
-                    >
-                      {backendWarming ? (
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={loading || backendWarming}
+                    className="w-full flex justify-center items-center gap-2 py-2.5 px-4 bg-indigo-500 hover:bg-indigo-400 text-slate-955 text-xs font-extrabold rounded-xl shadow-md transition duration-150 cursor-pointer disabled:opacity-50"
+                  >
+                    {backendWarming ? (
+                      <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : loading ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <ShieldCheck className="w-3.5 h-3.5" />
-                      )}
-                      {backendWarming ? 'Despertando...' : 'Validar Acceso (Simulación Local)'}
-                    </button>
-                  </div>
-                </form>
-              )}
-
-
+                        Despertando Servidor...
+                      </>
+                    ) : loading ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      'Iniciar Sesión'
+                    )}
+                  </button>
+                </div>
+              </form>
 
               {/* OAuth Google flow fallback */}
               <div className="relative flex py-1 items-center">
@@ -475,39 +374,6 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
                   </svg>
                   Google OAuth
                 </button>
-              </div>
-
-              {/* Pilot / Seed Accounts Bypass */}
-              <div className="pt-3 border-t border-slate-850/60 space-y-2">
-                <div className="flex items-center gap-1.5 text-teal-400">
-                  <Key className="w-3.5 h-3.5" />
-                  <span className="text-[9px] font-bold font-mono uppercase tracking-wider">
-                    Cuentas Piloto Sandbox
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  {mockAccounts.map((acc) => (
-                    <button
-                      key={acc.email}
-                      type="button"
-                      onClick={() => handleSelectMock(acc.email)}
-                      disabled={loading || backendWarming}
-                      className="w-full text-left bg-slate-900/30 hover:bg-slate-900/85 border border-slate-850 hover:border-slate-800 p-2.5 rounded-xl transition cursor-pointer flex justify-between items-center group"
-                    >
-                      <div>
-                        <span className="text-[11px] font-semibold text-slate-350 block group-hover:text-indigo-400 transition">
-                          {acc.label}
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-mono block mt-0.5">
-                          {acc.email}
-                        </span>
-                      </div>
-                      <span className="bg-teal-500/10 border border-teal-500/20 text-teal-305 text-[8px] px-1.5 py-0.5 rounded-md font-mono">
-                        {acc.role === 'Administrador' ? 'Admin' : 'Docente'}
-                      </span>
-                    </button>
-                  ))}
-                </div>
               </div>
             </>
           )}
