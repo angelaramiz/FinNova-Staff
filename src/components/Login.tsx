@@ -131,6 +131,8 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
           setStep('force-change');
         } else if (response.status === 'OTP_REQUIRED') {
           setStep('otp');
+        } else if (response.token && response.profile) {
+          onLoginSuccess(response.token, response.profile);
         }
       }
     } catch (err: any) {
