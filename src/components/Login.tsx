@@ -213,9 +213,14 @@ export default function Login({ onLoginSuccess, backendWarming = false }: LoginP
     setInfoMessage(null);
     setLoading(true);
     try {
-      await api.requestPasswordReset(email.trim());
-      setInfoMessage('Código de recuperación enviado. Revisa tu correo e ingresa el código OTP aquí.');
-      setStep('otp');
+      const res = await api.requestPasswordReset(email.trim());
+      if (res && res.status === 'ADMIN_APPROVAL_REQUIRED') {
+        setInfoMessage(res.message || 'Solicitud de recuperación registrada ante el administrador.');
+        setStep('login');
+      } else {
+        setInfoMessage('Código de recuperación enviado. Revisa tu correo e ingresa el código OTP aquí.');
+        setStep('otp');
+      }
     } catch (err: any) {
       setError(err.message || 'Error al solicitar el código de recuperación.');
     } finally {

@@ -58,7 +58,7 @@ export default function AdminPanel() {
   const [requests, setRequests] = useState<any[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestsError, setRequestsError] = useState<string | null>(null);
-  const [approvalResult, setApprovalResult] = useState<{ email: string; tempPass: string } | null>(null);
+  const [approvalResult, setApprovalResult] = useState<{ email: string; tempPass: string; isReset?: boolean } | null>(null);
 
   useEffect(() => {
     fetchAllowedEmails();
@@ -139,7 +139,8 @@ export default function AdminPanel() {
       const res = await api.approveRegisterRequest(id);
       setApprovalResult({
         email: res.request.email,
-        tempPass: res.tempPassword
+        tempPass: res.tempPassword,
+        isReset: res.request.specialty === 'PASSWORD_RESET'
       });
       
       // Refresh allowed list & requests
@@ -710,15 +711,21 @@ export default function AdminPanel() {
                       <td className="py-3 px-4 font-semibold text-slate-200">{req.fullName}</td>
                       <td className="py-3 px-4 text-slate-400 font-mono">{req.email}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded border text-[9px] font-mono font-semibold uppercase ${
-                          req.role === 'instructor'
-                            ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
-                            : 'bg-slate-950 border-slate-850 text-slate-400'
-                        }`}>
-                          {req.role}
-                        </span>
+                        {req.specialty === 'PASSWORD_RESET' ? (
+                          <span className="bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-0.5 rounded text-[9px] font-mono font-semibold uppercase">
+                            RECUPERAR CLAVE
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded border text-[9px] font-mono font-semibold uppercase ${
+                            req.role === 'instructor'
+                              ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+                              : 'bg-slate-950 border-slate-850 text-slate-400'
+                          }`}>
+                            {req.role}
+                          </span>
+                        )}
                       </td>
-                      <td className="py-3 px-4 text-slate-400">{req.specialty || 'N/A'}</td>
+                      <td className="py-3 px-4 text-slate-400">{req.specialty === 'PASSWORD_RESET' ? 'Restablecer Acceso' : (req.specialty || 'N/A')}</td>
                       <td className="py-3 px-4 text-slate-500 font-mono">
                         {new Date(req.createdAt).toLocaleString()}
                       </td>
@@ -774,9 +781,13 @@ export default function AdminPanel() {
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 mb-2">
                 <Sparkles className="h-6 w-6 animate-pulse" />
               </div>
-              <h3 className="text-base font-bold text-slate-200">¡Cuenta Autorizada con Éxito!</h3>
+              <h3 className="text-base font-bold text-slate-200">
+                {approvalResult.isReset ? '¡Contraseña Restablecida con Éxito!' : '¡Cuenta Autorizada con Éxito!'}
+              </h3>
               <p className="text-[11px] text-slate-500">
-                Se han generado las credenciales para el acceso del docente. El sistema envió la invitación simulada por correo.
+                {approvalResult.isReset 
+                  ? 'Se ha generado una nueva contraseña temporal. Debes entregarla manualmente al usuario para que pueda acceder.' 
+                  : 'Se han generado las credenciales para el acceso del docente. El sistema envió la invitación simulada por correo.'}
               </p>
             </div>
 
@@ -806,7 +817,9 @@ export default function AdminPanel() {
             <div className="bg-indigo-500/5 border border-indigo-500/10 rounded-2xl p-3 flex items-start gap-2 text-[10px] text-indigo-400/90 leading-normal">
               <Lock className="w-4 h-4 shrink-0 mt-0.5" />
               <span>
-                El usuario deberá cambiar esta contraseña obligatoriamente al ingresar por primera vez. Se requerirá OTP en cada inicio de sesión.
+                {approvalResult.isReset 
+                  ? 'El usuario deberá cambiar esta contraseña temporal obligatoriamente en su siguiente inicio de sesión.' 
+                  : 'El usuario deberá cambiar esta contraseña obligatoriamente al ingresar por primera vez. Se requerirá OTP en cada inicio de sesión.'}
               </span>
             </div>
 
