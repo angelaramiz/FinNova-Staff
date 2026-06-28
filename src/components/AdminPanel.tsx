@@ -63,7 +63,17 @@ export default function AdminPanel() {
   useEffect(() => {
     fetchAllowedEmails();
     fetchRegisterRequests();
+    fetchUsers();
   }, []);
+
+  const fetchUsers = async () => {
+    try {
+      const data = await api.getAdminUsers();
+      setUsers(data);
+    } catch (err: any) {
+      console.error('Error fetching users:', err);
+    }
+  };
 
   const fetchAllowedEmails = async () => {
     setAllowedLoading(true);
@@ -168,40 +178,7 @@ export default function AdminPanel() {
   };
   
   // Simulated database records for administration
-  const [users, setUsers] = useState<UserRecord[]>([
-    {
-      id: "u1",
-      fullName: "Carlos Alberto Rodríguez",
-      email: "carlos.rodriguez@itam.mx",
-      role: "student",
-      verifiedIdentity: true,
-      points: 1450
-    },
-    {
-      id: "u2",
-      fullName: "Profe Finanzas Senior",
-      email: "profesor.senior@finanzas.edu",
-      role: "instructor",
-      verifiedIdentity: true,
-      points: 500
-    },
-    {
-      id: "u3",
-      fullName: "Inversor Novato",
-      email: "student_tester@gmail.com",
-      role: "student",
-      verifiedIdentity: false,
-      points: 100
-    },
-    {
-      id: "u4",
-      fullName: "Administrador Master",
-      email: "admin@finnova.academy",
-      role: "admin",
-      verifiedIdentity: true,
-      points: 0
-    }
-  ]);
+  const [users, setUsers] = useState<UserRecord[]>([]);
 
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([
     {
@@ -239,37 +216,51 @@ export default function AdminPanel() {
   ]);
 
   // Toggle role handler
-  const handleToggleRole = (userId: string, currentRole: 'student' | 'instructor' | 'admin') => {
+  // Toggle role handler
+  const handleToggleRole = async (userId: string, currentRole: 'student' | 'instructor' | 'admin') => {
     const roles: ('student' | 'instructor' | 'admin')[] = ['student', 'instructor', 'admin'];
     const nextRole = roles[(roles.indexOf(currentRole) + 1) % roles.length];
     
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: nextRole } : u));
-    
-    // Append log
-    const newLog: AuditLog = {
-      id: `log-${Math.floor(Math.random() * 90000 + 10000)}`,
-      timestamp: new Date().toISOString(),
-      actionType: "USER_ROLE_UPDATE",
-      durationMs: 85,
-      status: "SUCCESS",
-      output: `Rol del usuario ID ${userId} actualizado a ${nextRole.toUpperCase()}.`
-    };
-    setAuditLogs(prev => [newLog, ...prev]);
+    try {
+      await api.updateAdminUserRole(userId, nextRole);
+      await fetchUsers();
+      
+      const newLog: AuditLog = {
+        id: `log-${Math.floor(Math.random() * 90000 + 10000)}`,
+        timestamp: new Date().toISOString(),
+        actionType: "USER_ROLE_UPDATE",
+        durationMs: 95,
+        status: "SUCCESS",
+        output: `Rol del usuario ID ${userId} actualizado a ${nextRole.toUpperCase()}.`
+      };
+      setAuditLogs(prev => [newLog, ...prev]);
+    } catch (err: any) {
+      alert(`No se pudo cambiar el rol: ${err.message || err}`);
+    }
   };
 
   // Toggle KYC status
-  const handleToggleKyc = (userId: string) => {
-    setUsers(prev => prev.map(u => u.id === userId ? { ...u, verifiedIdentity: !u.verifiedIdentity } : u));
-    
-    const newLog: AuditLog = {
-      id: `log-${Math.floor(Math.random() * 90000 + 10000)}`,
-      timestamp: new Date().toISOString(),
-      actionType: "USER_KYC_UPDATE",
-      durationMs: 70,
-      status: "SUCCESS",
-      output: `Estatus KYC del usuario ID ${userId} modificado.`
-    };
-    setAuditLogs(prev => [newLog, ...prev]);
+  const handleToggleKyc = async (userId: string) => {
+    const targetUser = users.find(u => u.id === userId);
+    if (!targetUser) return;
+    const nextKyc = !targetUser.verifiedIdentity;
+
+    try {
+      await api.toggleAdminUserKyc(userId, nextKyc);
+      await fetchUsers();
+      
+      const newLog: AuditLog = {
+        id: `log-${Math.floor(Math.random() * 90000 + 10000)}`,
+        timestamp: new Date().toISOString(),
+        actionType: "USER_KYC_UPDATE",
+        durationMs: 80,
+        status: "SUCCESS",
+        output: `Estatus KYC del usuario ID ${userId} modificado a ${nextKyc ? 'VERIFICADO' : 'PENDIENTE'}.`
+      };
+      setAuditLogs(prev => [newLog, ...prev]);
+    } catch (err: any) {
+      alert(`No se pudo cambiar KYC: ${err.message || err}`);
+    }
   };
 
   // Filter logs based on query search
@@ -372,9 +363,6 @@ export default function AdminPanel() {
           <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center">
               Directorio Corporativo y Permisos
-              <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded ml-2 normal-case">
-                <span className="text-[10px] font-light leading-none">×</span> próximamente
-              </span>
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left border-collapse">
@@ -587,9 +575,6 @@ export default function AdminPanel() {
               <div>
                 <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider font-mono flex items-center">
                   Bitácora de Auditoría Técnica
-                  <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded ml-2 normal-case">
-                    <span className="text-[10px] font-light leading-none">×</span> próximamente
-                  </span>
                 </h3>
                 <p className="text-slate-500 text-[10px] font-normal">Trazabilidad detallada de transacciones, ejecuciones de workers y respuestas de Gemini.</p>
               </div>
@@ -601,15 +586,6 @@ export default function AdminPanel() {
                 >
                   <Download className="w-3.5 h-3.5" /> CSV
                 </button>
-                <button
-                  onClick={() => handleExportLogs('pdf')}
-                  className="bg-slate-955/40 hover:bg-slate-900 border border-slate-850 text-teal-455 px-3 py-1 rounded-xl text-[9px] font-semibold transition flex items-center gap-1 cursor-pointer"
-                >
-                  <Download className="w-3.5 h-3.5" /> PDF
-                </button>
-                <span className="inline-flex items-center gap-1 text-[9px] text-rose-500 font-mono border border-rose-500/20 bg-rose-500/5 px-1.5 py-0.5 rounded">
-                  <span className="text-[10px] font-light leading-none">×</span> próximamente
-                </span>
               </div>
             </div>
 

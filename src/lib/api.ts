@@ -234,5 +234,14 @@ export const api = {
   rejectRegisterRequest: (id: string) => apiFetch<any>(`/api/auth/register-requests/${id}/reject`, {
     method: 'POST',
   }),
+  getAdminUsers: () => apiFetch<any[]>('/api/auth/admin/users'),
+  updateAdminUserRole: (id: string, role: string) => apiFetch<any>(`/api/auth/admin/users/${id}/role`, {
+    method: 'POST',
+    body: JSON.stringify({ role })
+  }),
+  toggleAdminUserKyc: (id: string, verifiedIdentity: boolean) => apiFetch<any>(`/api/auth/admin/users/${id}/kyc`, {
+    method: 'POST',
+    body: JSON.stringify({ verifiedIdentity })
+  }),
 };
 
