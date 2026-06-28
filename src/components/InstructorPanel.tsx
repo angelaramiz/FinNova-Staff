@@ -83,7 +83,9 @@ export default function InstructorPanel({
     description: '',
     difficulty: 'beginner' as 'beginner' | 'intermediate' | 'advanced',
     imageUrl: '',
-    isPublished: false
+    isPublished: false,
+    category: '',
+    learningPath: ''
   });
 
   // Lesson Form States
@@ -93,7 +95,8 @@ export default function InstructorPanel({
     videoUrl: '',
     duration: 60,
     sequenceOrder: 1,
-    section: ''
+    section: '',
+    videoFormat: '9:16' as '9:16' | '16:9'
   });
 
   // Lesson Drawer Edit States
@@ -104,7 +107,8 @@ export default function InstructorPanel({
     videoUrl: '',
     duration: 60,
     sequenceOrder: 1,
-    section: ''
+    section: '',
+    videoFormat: '9:16' as '9:16' | '16:9'
   });
 
   // Fetch student doubts on mount/tab change
@@ -178,7 +182,9 @@ export default function InstructorPanel({
       description: '',
       difficulty: 'beginner',
       imageUrl: '',
-      isPublished: false
+      isPublished: false,
+      category: '',
+      learningPath: ''
     });
     setShowCreateCourseModal(true);
   };
@@ -191,7 +197,9 @@ export default function InstructorPanel({
       description: course.description,
       difficulty: course.difficulty,
       imageUrl: course.imageUrl || '',
-      isPublished: course.isPublished
+      isPublished: course.isPublished,
+      category: course.category || '',
+      learningPath: course.learningPath || ''
     });
     setShowEditCourseModal(true);
   };
@@ -205,7 +213,9 @@ export default function InstructorPanel({
           description: courseForm.description,
           difficulty: courseForm.difficulty,
           imageUrl: courseForm.imageUrl,
-          isPublished: courseForm.isPublished
+          isPublished: courseForm.isPublished,
+          category: courseForm.category,
+          learningPath: courseForm.learningPath
         });
       } else {
         // Create endpoint POST /api/courses exists
@@ -215,7 +225,9 @@ export default function InstructorPanel({
             title: courseForm.title,
             description: courseForm.description,
             difficulty: courseForm.difficulty,
-            imageUrl: courseForm.imageUrl
+            imageUrl: courseForm.imageUrl,
+            category: courseForm.category,
+            learningPath: courseForm.learningPath
           })
         });
       }
@@ -254,7 +266,8 @@ export default function InstructorPanel({
       videoUrl: 'https://vjs.zencdn.net/v/oceans.mp4',
       duration: 60,
       sequenceOrder: 1,
-      section: 'Fundamentos'
+      section: 'Fundamentos',
+      videoFormat: '9:16'
     });
     setShowCreateLessonModal(true);
   };
@@ -268,7 +281,8 @@ export default function InstructorPanel({
         videoUrl: lessonForm.videoUrl,
         duration: Number(lessonForm.duration),
         sequenceOrder: Number(lessonForm.sequenceOrder),
-        section: lessonForm.section || 'General'
+        section: lessonForm.section || 'General',
+        videoFormat: lessonForm.videoFormat
       });
       await refreshCourses();
       setShowCreateLessonModal(false);
@@ -288,7 +302,8 @@ export default function InstructorPanel({
       videoUrl: clip.videoUrl || '',
       duration: clip.duration || 60,
       sequenceOrder: clip.sequenceOrder || 1,
-      section: clip.section || 'General'
+      section: clip.section || 'General',
+      videoFormat: clip.videoFormat || '9:16'
     });
   };
 
@@ -303,7 +318,8 @@ export default function InstructorPanel({
         videoUrl: drawerForm.videoUrl,
         duration: Number(drawerForm.duration),
         sequenceOrder: Number(drawerForm.sequenceOrder),
-        section: drawerForm.section
+        section: drawerForm.section,
+        videoFormat: drawerForm.videoFormat
       });
       await refreshCourses();
       setSelectedLesson(null);
@@ -817,6 +833,18 @@ export default function InstructorPanel({
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 font-medium">Formato de Video</label>
+                  <select
+                    value={drawerForm.videoFormat}
+                    onChange={(e) => setDrawerForm({ ...drawerForm, videoFormat: e.target.value as any })}
+                    className="bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-slate-350 focus:outline-none focus:border-teal-500/50 text-xs font-semibold cursor-pointer"
+                  >
+                    <option value="9:16">Corto / Vertical (9:16)</option>
+                    <option value="16:9">Largo / Horizontal (16:9)</option>
+                  </select>
+                </div>
+
                 <div className="flex flex-col gap-2 pt-2">
                   <button
                     type="submit"
@@ -1041,7 +1069,7 @@ export default function InstructorPanel({
                   <select
                     value={courseForm.difficulty}
                     onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value as any })}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 cursor-pointer focus:outline-none"
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 cursor-pointer focus:outline-none"
                   >
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -1055,6 +1083,34 @@ export default function InstructorPanel({
                     value={courseForm.imageUrl}
                     onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
                     placeholder="https://..."
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 focus:outline-none focus:border-teal-500/50"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 font-medium">Categoría Académica</label>
+                  <select
+                    value={courseForm.category}
+                    onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-350 cursor-pointer focus:outline-none"
+                  >
+                    <option value="">Selecciona una Categoría...</option>
+                    <option value="Finanzas Corporativas">Finanzas Corporativas</option>
+                    <option value="Inversión y Mercados de Capitales">Inversión y Mercados de Capitales</option>
+                    <option value="Tecnología Financiera (FinTech)">Tecnología Financiera (FinTech)</option>
+                    <option value="Banca y Gestión Patrimonial">Banca y Gestión Patrimonial</option>
+                    <option value="Análisis de Datos y Modelación Cuantitativa">Análisis de Datos y Modelación Cuantitativa</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 font-medium">Ruta de Aprendizaje</label>
+                  <input
+                    type="text"
+                    value={courseForm.learningPath}
+                    onChange={(e) => setCourseForm({ ...courseForm, learningPath: e.target.value })}
+                    placeholder="Ej: Ruta Máster en Finanzas"
                     className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-350 focus:outline-none focus:border-teal-500/50"
                   />
                 </div>
@@ -1138,6 +1194,34 @@ export default function InstructorPanel({
                     type="url"
                     value={courseForm.imageUrl}
                     onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 font-medium">Categoría Académica</label>
+                  <select
+                    value={courseForm.category}
+                    onChange={(e) => setCourseForm({ ...courseForm, category: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 cursor-pointer focus:outline-none"
+                  >
+                    <option value="">Selecciona una Categoría...</option>
+                    <option value="Finanzas Corporativas">Finanzas Corporativas</option>
+                    <option value="Inversión y Mercados de Capitales">Inversión y Mercados de Capitales</option>
+                    <option value="Tecnología Financiera (FinTech)">Tecnología Financiera (FinTech)</option>
+                    <option value="Banca y Gestión Patrimonial">Banca y Gestión Patrimonial</option>
+                    <option value="Análisis de Datos y Modelación Cuantitativa">Análisis de Datos y Modelación Cuantitativa</option>
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-400 font-medium">Ruta de Aprendizaje</label>
+                  <input
+                    type="text"
+                    value={courseForm.learningPath}
+                    onChange={(e) => setCourseForm({ ...courseForm, learningPath: e.target.value })}
+                    placeholder="Ej: Ruta Máster en Finanzas"
                     className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 focus:outline-none"
                   />
                 </div>
@@ -1258,6 +1342,18 @@ export default function InstructorPanel({
                     className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-medium">Formato de Video</label>
+                <select
+                  value={lessonForm.videoFormat}
+                  onChange={(e) => setLessonForm({ ...lessonForm, videoFormat: e.target.value as any })}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 focus:outline-none text-xs font-semibold cursor-pointer"
+                >
+                  <option value="9:16">Corto / Vertical (9:16)</option>
+                  <option value="16:9">Largo / Horizontal (16:9)</option>
+                </select>
               </div>
 
               <div className="flex gap-2.5 pt-2">

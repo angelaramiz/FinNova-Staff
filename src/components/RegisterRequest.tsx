@@ -180,13 +180,18 @@ export default function RegisterRequest() {
                 <label className="block text-[10px] font-mono uppercase text-slate-400 mb-1.5">
                   Materia / Especialidad (Opcional)
                 </label>
-                <input
-                  type="text"
+                <select
                   value={specialty}
                   onChange={(e) => setSpecialty(e.target.value)}
-                  placeholder="Ej: Finanzas Corporativas / Trading de Opciones"
-                  className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-600 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
-                />
+                  className="block w-full bg-slate-950/50 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-200 outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/20 transition"
+                >
+                  <option value="">Selecciona una Especialidad...</option>
+                  <option value="Finanzas Corporativas">Finanzas Corporativas</option>
+                  <option value="Inversión y Mercados de Capitales">Inversión y Mercados de Capitales</option>
+                  <option value="Tecnología Financiera (FinTech)">Tecnología Financiera (FinTech)</option>
+                  <option value="Banca y Gestión Patrimonial">Banca y Gestión Patrimonial</option>
+                  <option value="Análisis de Datos y Modelación Cuantitativa">Análisis de Datos y Modelación Cuantitativa</option>
+                </select>
               </div>
 
               <div className="pt-2">
