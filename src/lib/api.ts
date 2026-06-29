@@ -187,6 +187,10 @@ export const api = {
   }),
 
   // Course Management API (Instructor/Admin only)
+  uploadCourseImage: (base64Image: string) => apiFetch<{ imageUrl: string }>('/api/courses/upload-image', {
+    method: 'POST',
+    body: JSON.stringify({ base64Image }),
+  }),
   updateCourse: (id: string, payload: any) => apiFetch<any>(`/api/courses/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),

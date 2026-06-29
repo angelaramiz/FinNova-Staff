@@ -77,6 +77,8 @@ export default function InstructorPanel({
   const [activeCourseIdForNewLesson, setActiveCourseIdForNewLesson] = useState<string>('');
   
   // Course Form States
+  const [uploadingImage, setUploadingImage] = useState(false);
+
   const [courseForm, setCourseForm] = useState({
     id: '',
     title: '',
@@ -202,6 +204,30 @@ export default function InstructorPanel({
       learningPath: course.learningPath || ''
     });
     setShowEditCourseModal(true);
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result as string;
+      setUploadingImage(true);
+      try {
+        const res = await api.uploadCourseImage(base64);
+        setCourseForm(prev => ({ ...prev, imageUrl: res.imageUrl }));
+      } catch (err: any) {
+        console.error('Error uploading image:', err);
+        alert('Error al subir la imagen: ' + (err.message || err));
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    reader.onerror = () => {
+      alert('Error al leer el archivo.');
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSaveCourse = async (e: React.FormEvent, isEditing: boolean) => {
@@ -1063,29 +1089,56 @@ export default function InstructorPanel({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 font-medium">Dificultad</label>
-                  <select
-                    value={courseForm.difficulty}
-                    onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value as any })}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 cursor-pointer focus:outline-none"
-                  >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-medium">Dificultad</label>
+                <select
+                  value={courseForm.difficulty}
+                  onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value as any })}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 cursor-pointer focus:outline-none"
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 bg-slate-900/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px] font-mono">
+                  Recurso Gráfico (Imagen del Curso)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-medium">Subir archivo:</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1 text-slate-400 focus:outline-none file:bg-teal-500/10 file:border-0 file:text-teal-400 file:rounded-md file:px-2 file:py-0.5 file:text-[10px] file:font-semibold cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-medium">O pegar URL de imagen:</span>
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={courseForm.imageUrl}
+                      onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
+                      className="bg-slate-950 border border-slate-850 rounded-lg px-3 py-1.5 text-slate-350 focus:outline-none focus:border-teal-500/50 text-xs"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 font-medium">Imagen del Curso (URL)</label>
-                  <input
-                    type="url"
-                    value={courseForm.imageUrl}
-                    onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
-                    placeholder="https://..."
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 focus:outline-none focus:border-teal-500/50"
-                  />
-                </div>
+                {uploadingImage && (
+                  <p className="text-[10px] text-teal-400 animate-pulse font-medium">Subiendo recurso gráfico a Supabase Storage...</p>
+                )}
+                {courseForm.imageUrl && (
+                  <div className="mt-2 flex items-center gap-3 bg-slate-950/80 p-2 rounded-lg border border-slate-850">
+                    <img src={courseForm.imageUrl} alt="Vista previa" className="w-12 h-12 rounded object-cover border border-slate-800" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-slate-500 font-mono uppercase block">Vista Previa / URL actual:</span>
+                      <span className="text-[10px] text-slate-400 truncate block font-mono">{courseForm.imageUrl}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -1175,28 +1228,56 @@ export default function InstructorPanel({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 font-medium">Dificultad</label>
-                  <select
-                    value={courseForm.difficulty}
-                    onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value as any })}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 cursor-pointer focus:outline-none"
-                  >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-slate-400 font-medium">Dificultad</label>
+                <select
+                  value={courseForm.difficulty}
+                  onChange={(e) => setCourseForm({ ...courseForm, difficulty: e.target.value as any })}
+                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-300 cursor-pointer focus:outline-none"
+                >
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1.5 bg-slate-900/50 border border-slate-850 p-3.5 rounded-xl space-y-2">
+                <label className="text-slate-400 font-semibold uppercase tracking-wider text-[9px] font-mono">
+                  Recurso Gráfico (Imagen del Curso)
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-medium">Subir archivo:</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageFileChange}
+                      className="bg-slate-950 border border-slate-850 rounded-lg px-2 py-1 text-slate-400 focus:outline-none file:bg-teal-500/10 file:border-0 file:text-teal-400 file:rounded-md file:px-2 file:py-0.5 file:text-[10px] file:font-semibold cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] text-slate-500 font-medium">O pegar URL de imagen:</span>
+                    <input
+                      type="text"
+                      placeholder="https://..."
+                      value={courseForm.imageUrl}
+                      onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
+                      className="bg-slate-950 border border-slate-850 rounded-lg px-3 py-1.5 text-slate-350 focus:outline-none focus:border-teal-500/50 text-xs"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 font-medium">Imagen del Curso (URL)</label>
-                  <input
-                    type="url"
-                    value={courseForm.imageUrl}
-                    onChange={(e) => setCourseForm({ ...courseForm, imageUrl: e.target.value })}
-                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-355 focus:outline-none"
-                  />
-                </div>
+                {uploadingImage && (
+                  <p className="text-[10px] text-teal-400 animate-pulse font-medium">Subiendo recurso gráfico a Supabase Storage...</p>
+                )}
+                {courseForm.imageUrl && (
+                  <div className="mt-2 flex items-center gap-3 bg-slate-950/80 p-2 rounded-lg border border-slate-850">
+                    <img src={courseForm.imageUrl} alt="Vista previa" className="w-12 h-12 rounded object-cover border border-slate-800" />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-[9px] text-slate-500 font-mono uppercase block">Vista Previa / URL actual:</span>
+                      <span className="text-[10px] text-slate-400 truncate block font-mono">{courseForm.imageUrl}</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
