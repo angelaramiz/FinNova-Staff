@@ -191,6 +191,14 @@ export const api = {
     method: 'POST',
     body: JSON.stringify({ base64Image }),
   }),
+  uploadCourseVideo: (file: File) => {
+    const formData = new FormData();
+    formData.append('video', file);
+    return apiFetch<{ videoUrl: string }>('/api/courses/upload-video', {
+      method: 'POST',
+      body: formData,
+    });
+  },
   updateCourse: (id: string, payload: any) => apiFetch<any>(`/api/courses/${id}`, {
     method: 'PUT',
     body: JSON.stringify(payload),

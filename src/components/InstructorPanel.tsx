@@ -78,6 +78,9 @@ export default function InstructorPanel({
   
   // Course Form States
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [videoInputMode, setVideoInputMode] = useState<'url' | 'file'>('url');
+  const [drawerVideoInputMode, setDrawerVideoInputMode] = useState<'url' | 'file'>('url');
 
   const [courseForm, setCourseForm] = useState({
     id: '',
@@ -228,6 +231,26 @@ export default function InstructorPanel({
       alert('Error al leer el archivo.');
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleVideoFileChange = async (e: React.ChangeEvent<HTMLInputElement>, isDrawer: boolean) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingVideo(true);
+    try {
+      const res = await api.uploadCourseVideo(file);
+      if (isDrawer) {
+        setDrawerForm(prev => ({ ...prev, videoUrl: res.videoUrl }));
+      } else {
+        setLessonForm(prev => ({ ...prev, videoUrl: res.videoUrl }));
+      }
+    } catch (err: any) {
+      console.error('Error uploading video:', err);
+      alert('Error al subir el video: ' + (err.message || err));
+    } finally {
+      setUploadingVideo(false);
+    }
   };
 
   const handleSaveCourse = async (e: React.FormEvent, isEditing: boolean) => {
@@ -825,15 +848,51 @@ export default function InstructorPanel({
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-slate-400 font-medium">Video playback URL</label>
-                  <input
-                    type="url"
-                    required
-                    value={drawerForm.videoUrl}
-                    onChange={(e) => setDrawerForm({ ...drawerForm, videoUrl: e.target.value })}
-                    className="bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-teal-500/50 font-mono font-normal"
-                  />
+                <div className="flex flex-col gap-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-slate-400 font-medium">Video de la Lección</label>
+                    <div className="flex bg-slate-950/60 p-0.5 rounded-lg border border-slate-850">
+                      <button
+                        type="button"
+                        onClick={() => setDrawerVideoInputMode('url')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${drawerVideoInputMode === 'url' ? 'bg-teal-500/20 text-teal-400' : 'text-slate-550'}`}
+                      >
+                        Enlace URL
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDrawerVideoInputMode('file')}
+                        className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${drawerVideoInputMode === 'file' ? 'bg-teal-500/20 text-teal-400' : 'text-slate-550'}`}
+                      >
+                        Subir Archivo
+                      </button>
+                    </div>
+                  </div>
+
+                  {drawerVideoInputMode === 'url' ? (
+                    <input
+                      type="url"
+                      required
+                      value={drawerForm.videoUrl}
+                      onChange={(e) => setDrawerForm({ ...drawerForm, videoUrl: e.target.value })}
+                      className="bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-teal-500/50 font-mono font-normal"
+                    />
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={(e) => handleVideoFileChange(e, true)}
+                        className="bg-slate-950/40 border border-slate-850 rounded-xl px-3 py-2 text-slate-300 focus:outline-none focus:border-teal-500/50 text-[10px] cursor-pointer"
+                      />
+                      {uploadingVideo && (
+                        <span className="text-[10px] text-teal-400 animate-pulse">Optimizando y subiendo video a Supabase...</span>
+                      )}
+                      {drawerForm.videoUrl && !uploadingVideo && (
+                        <span className="text-[9px] text-slate-500 truncate">URL: {drawerForm.videoUrl}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -1391,15 +1450,51 @@ export default function InstructorPanel({
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-slate-400 font-medium">Video playback URL</label>
-                <input
-                  type="url"
-                  required
-                  value={lessonForm.videoUrl}
-                  onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
-                  className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-350 focus:outline-none focus:border-teal-500/50"
-                />
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-between items-center">
+                  <label className="text-slate-400 font-medium">Video de la Lección</label>
+                  <div className="flex bg-slate-905 p-0.5 rounded-lg border border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => setVideoInputMode('url')}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${videoInputMode === 'url' ? 'bg-teal-500/20 text-teal-400' : 'text-slate-550'}`}
+                    >
+                      Enlace URL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVideoInputMode('file')}
+                      className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${videoInputMode === 'file' ? 'bg-teal-500/20 text-teal-400' : 'text-slate-550'}`}
+                    >
+                      Subir Archivo
+                    </button>
+                  </div>
+                </div>
+
+                {videoInputMode === 'url' ? (
+                  <input
+                    type="url"
+                    required
+                    value={lessonForm.videoUrl}
+                    onChange={(e) => setLessonForm({ ...lessonForm, videoUrl: e.target.value })}
+                    className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-350 focus:outline-none focus:border-teal-500/50"
+                  />
+                ) : (
+                  <div className="flex flex-col gap-1">
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => handleVideoFileChange(e, false)}
+                      className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-slate-350 focus:outline-none focus:border-teal-500/50 text-[10px] cursor-pointer"
+                    />
+                    {uploadingVideo && (
+                      <span className="text-[10px] text-teal-400 animate-pulse">Optimizando y subiendo video a Supabase...</span>
+                    )}
+                    {lessonForm.videoUrl && !uploadingVideo && (
+                      <span className="text-[9px] text-slate-505 truncate">URL: {lessonForm.videoUrl}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
